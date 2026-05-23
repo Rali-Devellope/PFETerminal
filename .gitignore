@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environnements virtuels
+venv/
+env/
+.venv/
+BackendPFE/venv/
+
+# Variables d'environnement (SECRETS — ne jamais commiter)
+.env
+.env.*
+!.env.example
+
+# Django
+BackendPFE/media/
+BackendPFE/static/
+BackendPFE/db.sqlite3
+BackendPFE/*.log
+
+# Node.js
+node_modules/
+FrontendPFE/webPFE/node_modules/
+
+# Build frontend
+FrontendPFE/webPFE/dist/
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/

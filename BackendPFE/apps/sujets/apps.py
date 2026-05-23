@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class SujetsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.sujets'
+    verbose_name = 'Sujets PFE'

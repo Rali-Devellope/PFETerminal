@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-iscae-navy:       #1e3a5f;
+  --color-iscae-navy-dark:  #152c4a;
+  --color-iscae-green:      #2db84b;
+  --color-iscae-green-dark: #1e8c36;
+  --color-iscae-slate:      #4a5568;
+  --color-iscae-dark:       #1a2744;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #f8f9fa;
+  font-family: var(--font-sans);
+  color: #1a2744;
+}
+
+#root {
+  min-height: 100vh;
+}
