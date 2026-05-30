@@ -1,6 +1,10 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export default function Sidebar({ items, open, onClose }) {
+  const { i18n } = useTranslation()
+  const isRtl = i18n.language === 'ar'
+
   return (
     <>
       {open && (
@@ -12,11 +16,13 @@ export default function Sidebar({ items, open, onClose }) {
       )}
 
       <aside
-        className={`fixed top-14 left-0 bottom-0 z-40 w-56 flex flex-col transition-transform duration-250
-          ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+        className={`fixed top-14 bottom-0 z-40 w-56 flex flex-col transition-transform duration-250
+          ${isRtl ? 'right-0' : 'left-0'}
+          ${open ? 'translate-x-0' : isRtl ? 'translate-x-full' : '-translate-x-full'}
+          lg:translate-x-0`}
         style={{
           backgroundColor: '#152c4a',
-          borderRight: '1px solid rgba(255,255,255,0.05)',
+          borderInlineEnd: '1px solid rgba(255,255,255,0.05)',
         }}
       >
         <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-0.5">
@@ -31,11 +37,9 @@ export default function Sidebar({ items, open, onClose }) {
                 ? {
                     backgroundColor: 'rgba(45,184,75,0.15)',
                     color: '#4ade80',
-                    boxShadow: 'inset 3px 0 0 #2db84b',
+                    boxShadow: isRtl ? 'inset -3px 0 0 #2db84b' : 'inset 3px 0 0 #2db84b',
                   }
-                : {
-                    color: 'rgba(255,255,255,0.5)',
-                  }
+                : { color: 'rgba(255,255,255,0.5)' }
               }
               onMouseEnter={(e) => {
                 if (!e.currentTarget.style.boxShadow) {

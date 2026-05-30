@@ -8,7 +8,7 @@ from core.exceptions import success_response
 from .models import PFE, Livrable
 from .serializers import (
     PFESerializer, LivrableSerializer,
-    LivrableUploadSerializer, LivrableActionSerializer,
+    LivrableUploadSerializer, LivrableNestedUploadSerializer, LivrableActionSerializer,
 )
 from .filters import PFEFilter, LivrableFilter
 from .services import upload_livrable, valider_livrable, refuser_livrable, archiver_pfe
@@ -35,6 +35,31 @@ class PFEViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'archiver':
             return [IsCoordinateur()]
         return [IsAuthenticated()]
+
+    @action(detail=False, methods=['get'], url_path='mon-pfe')
+    def mon_pfe(self, request):
+        pfe = PFE.objects.select_related(
+            'sujet', 'etudiant', 'encadrant_acad', 'encadrant_entr'
+        ).prefetch_related('livrables').filter(etudiant=request.user).first()
+        if not pfe:
+            return success_response(data=None)
+        return success_response(data=PFESerializer(pfe).data)
+
+    @action(detail=True, methods=['get', 'post'], url_path='livrables')
+    def livrables_list(self, request, pk=None):
+        pfe = self.get_object()
+        if request.method == 'GET':
+            qs = pfe.livrables.all().order_by('-date_depot')
+            return success_response(data=LivrableSerializer(qs, many=True).data)
+        ser = LivrableNestedUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        livrable = upload_livrable(
+            pfe=pfe,
+            type_livrable=ser.validated_data['type_livrable'],
+            fichier=ser.validated_data['fichier'],
+            deposant=request.user,
+        )
+        return success_response(data=LivrableSerializer(livrable).data, status_code=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
     def archiver(self, request, pk=None):
@@ -72,7 +97,7 @@ class LivrableViewSet(viewsets.ModelViewSet):
         ser.is_valid(raise_exception=True)
         livrable = upload_livrable(
             pfe=ser.validated_data['pfe'],
-            type_livrable=ser.validated_data['type'],
+            type_livrable=ser.validated_data['type_livrable'],
             fichier=ser.validated_data['fichier'],
             deposant=request.user,
         )

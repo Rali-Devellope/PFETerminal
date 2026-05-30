@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from core.permissions import IsAdmin
+from core.permissions import IsAdmin, IsAdminOrCoordinateur
 from core.throttling import LoginRateThrottle
 from core.exceptions import success_response, error_response
 from .models import CustomUser
@@ -32,7 +32,7 @@ class AdminCreateUserView(generics.CreateAPIView):
 
 
 class UserListView(generics.ListAPIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdminOrCoordinateur]
     serializer_class = UserSerializer
     queryset = CustomUser.objects.all().order_by('-created_at')
 

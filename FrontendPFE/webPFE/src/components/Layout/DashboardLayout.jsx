@@ -14,7 +14,7 @@ export default function DashboardLayout({ children, navItems }) {
         onClose={() => setSidebarOpen(false)}
       />
       {/* Contenu principal — decale a droite de la sidebar sur grand ecran */}
-      <main className="pt-14 lg:pl-56 min-h-screen">
+      <main className="pt-14 lg:ps-56 min-h-screen">
         <div className="p-6">{children}</div>
       </main>
     </div>

@@ -12,5 +12,5 @@ export const changePassword = (data) =>
 export const getProfile = () =>
   api.get('/auth/me/')
 
-export const getUsers = () => api.get('/auth/users/')
+export const getUsers = () => api.get('/auth/users/list/')
 export const createUser = (data) => api.post('/auth/users/', data)

@@ -5,22 +5,28 @@ from .models import PFE, Livrable
 
 
 class LivrableSerializer(serializers.ModelSerializer):
-    type_display   = serializers.CharField(source='get_type_display',   read_only=True)
-    statut_display = serializers.CharField(source='get_statut_display', read_only=True)
+    type_livrable         = serializers.CharField(source='type')
+    type_livrable_display = serializers.CharField(source='get_type_display', read_only=True)
+    statut_display        = serializers.CharField(source='get_statut_display', read_only=True)
 
     class Meta:
         model  = Livrable
         fields = [
-            'id', 'pfe', 'type', 'type_display', 'fichier',
+            'id', 'pfe', 'type_livrable', 'type_livrable_display', 'fichier',
             'statut', 'statut_display', 'remarques', 'date_depot',
         ]
         read_only_fields = ['id', 'statut', 'date_depot']
 
 
 class LivrableUploadSerializer(serializers.Serializer):
-    pfe     = serializers.PrimaryKeyRelatedField(queryset=PFE.objects.all())
-    type    = serializers.ChoiceField(choices=Livrable.TYPES)
-    fichier = serializers.FileField()
+    pfe           = serializers.PrimaryKeyRelatedField(queryset=PFE.objects.all())
+    type_livrable = serializers.ChoiceField(choices=Livrable.TYPES)
+    fichier       = serializers.FileField()
+
+
+class LivrableNestedUploadSerializer(serializers.Serializer):
+    type_livrable = serializers.ChoiceField(choices=Livrable.TYPES)
+    fichier       = serializers.FileField()
 
 
 class LivrableActionSerializer(serializers.Serializer):

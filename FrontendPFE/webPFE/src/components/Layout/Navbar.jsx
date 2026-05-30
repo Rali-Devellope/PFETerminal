@@ -1,17 +1,8 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { useNotifStore } from '../../store/notifStore'
 import { useAuth } from '../../hooks/useAuth'
-
-const ROLE_LABELS = {
-  etudiant:       'Étudiant',
-  encadrant_acad: 'Encadrant Académique',
-  encadrant_entr: 'Encadrant Entreprise',
-  coordinateur:   'Coordinateur',
-  jury:           'Jury',
-  scolarite:      'Scolarité',
-  admin:          'Administrateur',
-}
 
 function Avatar({ prenom, nom }) {
   const initials = `${(prenom?.[0] ?? '').toUpperCase()}${(nom?.[0] ?? '').toUpperCase()}`
@@ -26,10 +17,15 @@ function Avatar({ prenom, nom }) {
 }
 
 export default function Navbar({ onToggleSidebar }) {
+  const { t, i18n } = useTranslation()
   const { user } = useAuthStore()
   const { unreadCount } = useNotifStore()
   const { logout } = useAuth()
   const [showUser, setShowUser] = useState(false)
+
+  const isAr = i18n.language === 'ar'
+
+  const toggleLang = () => i18n.changeLanguage(isAr ? 'fr' : 'ar')
 
   return (
     <header
@@ -39,7 +35,7 @@ export default function Navbar({ onToggleSidebar }) {
         boxShadow: '0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.25)',
       }}
     >
-      {/* Gauche */}
+      {/* Left */}
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
@@ -52,11 +48,13 @@ export default function Navbar({ onToggleSidebar }) {
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-extrabold"
-            style={{ backgroundColor: '#2db84b', color: '#fff' }}
-          >
-            I
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+               style={{ backgroundColor: '#fff', padding: '2px' }}>
+            <img
+              src="/logo-iscae.png"
+              alt="ISCAE"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="hidden sm:block">
             <span className="text-white font-bold text-sm tracking-wide">GestionPFE</span>
@@ -68,12 +66,30 @@ export default function Navbar({ onToggleSidebar }) {
         </div>
       </div>
 
-      {/* Droite */}
+      {/* Right */}
       <div className="flex items-center gap-1">
-        {/* Cloche */}
+        {/* Language switcher */}
+        <button
+          onClick={toggleLang}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition hover:bg-white/10"
+          style={{ color: isAr ? '#fbbf24' : '#93c5fd' }}
+          title={isAr ? 'Passer au français' : 'التبديل إلى العربية'}
+        >
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            <path d="M2 12h20" />
+          </svg>
+          {isAr ? 'FR' : 'ع'}
+        </button>
+
+        {/* Separator */}
+        <div className="w-px h-5 mx-1" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+
+        {/* Bell */}
         <button
           className="relative text-white/70 p-2 rounded-lg hover:bg-white/10 hover:text-white transition"
-          aria-label="Notifications"
+          aria-label={t('nav.notifications')}
         >
           <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
@@ -89,7 +105,7 @@ export default function Navbar({ onToggleSidebar }) {
           )}
         </button>
 
-        {/* Séparateur */}
+        {/* Separator */}
         <div className="w-px h-5 mx-1" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
 
         {/* User */}
@@ -104,7 +120,7 @@ export default function Navbar({ onToggleSidebar }) {
                 {user?.prenom} {user?.nom}
               </p>
               <p className="text-[10px] leading-tight" style={{ color: '#7fb3d3' }}>
-                {ROLE_LABELS[user?.role] ?? user?.role}
+                {t(`roles.${user?.role}`, { defaultValue: user?.role })}
               </p>
             </div>
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5"
@@ -117,7 +133,7 @@ export default function Navbar({ onToggleSidebar }) {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUser(false)} />
               <div
-                className="absolute right-0 top-full mt-2 z-50 w-44 rounded-xl border border-white/10 overflow-hidden"
+                className="absolute end-0 top-full mt-2 z-50 w-44 rounded-xl border border-white/10 overflow-hidden"
                 style={{ backgroundColor: '#152c4a', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
               >
                 <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -134,7 +150,7 @@ export default function Navbar({ onToggleSidebar }) {
                     <polyline points="16 17 21 12 16 7" strokeLinecap="round" />
                     <line x1="21" y1="12" x2="9" y2="12" strokeLinecap="round" />
                   </svg>
-                  Déconnexion
+                  {t('common.logout')}
                 </button>
               </div>
             </>
