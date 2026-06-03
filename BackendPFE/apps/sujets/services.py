@@ -3,6 +3,19 @@ from rest_framework.exceptions import ValidationError
 from .models import Sujet
 
 
+def choisir_sujet(sujet, etudiant):
+    from apps.pfe.models import PFE
+    if sujet.statut != 'VALIDE':
+        raise ValidationError("Ce sujet n'est pas disponible")
+    if sujet.etudiant_cible and sujet.etudiant_cible != etudiant:
+        raise ValidationError("Ce sujet est déjà assigné à un autre étudiant")
+    if PFE.objects.filter(etudiant=etudiant).exists():
+        raise ValidationError("Vous avez déjà un PFE en cours")
+    sujet.etudiant_cible = etudiant
+    sujet.save()
+    return sujet
+
+
 def valider_sujet(sujet, coordinateur):
     if sujet.statut != 'PROPOSE':
         raise ValidationError("Seul un sujet PROPOSÉ peut être validé")

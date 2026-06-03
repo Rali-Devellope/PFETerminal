@@ -25,7 +25,8 @@
     "ARCHIVE": "Archivé",
     "PLANIFIEE": "Planifiée",
     "TERMINEE": "Terminée",
-    "PROPOSE": "Proposée"
+    "PROPOSE": "Proposée",
+    "AFFECTE": "Affecté"
   },
   "login": {
     "title": "Connexion",
@@ -54,6 +55,7 @@
     "mon_pfe": "Mon PFE",
     "mes_livrables": "Mes Livrables",
     "ma_soutenance": "Ma Soutenance",
+    "sujets_dispo": "Sujets disponibles",
     "vue_ensemble": "Vue d'ensemble",
     "sujets": "Sujets",
     "soutenances": "Soutenances",
@@ -94,7 +96,22 @@
     "note_finale": "Note finale",
     "livrables_title": "Livrables",
     "livrables_desc": "Déposez vos rapports, présentations et documents relatifs à votre PFE. Ils seront analysés automatiquement pour le plagiat.",
-    "deposit_btn": "Déposer"
+    "deposit_btn": "Déposer",
+    "sujets_page_title": "Sujets disponibles",
+    "sujets_page_sub": "Parcourez les sujets validés et choisissez votre PFE",
+    "sujets_search": "Rechercher un sujet...",
+    "sujets_all_filieres": "Toutes les filières",
+    "sujets_count": "Sujets ({{count}})",
+    "sujets_none": "Aucun sujet disponible",
+    "sujets_proposer": "Proposé par",
+    "sujets_choisir": "Choisir ce sujet",
+    "sujets_choisi": "Sujet choisi",
+    "sujets_confirm_title": "Confirmer votre choix",
+    "sujets_confirm_msg": "Voulez-vous choisir ce sujet comme PFE ? Cette action est irréversible.",
+    "sujets_confirming": "Confirmation...",
+    "sujets_my_proposal": "Ma proposition",
+    "sujets_proposed_for_me": "Proposé pour moi",
+    "sujets_available": "Disponible"
   },
   "livrables": {
     "page_title": "Mes Livrables",

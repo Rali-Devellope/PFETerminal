@@ -25,7 +25,8 @@
     "ARCHIVE": "مؤرشف",
     "PLANIFIEE": "مجدول",
     "TERMINEE": "منتهٍ",
-    "PROPOSE": "مقترح"
+    "PROPOSE": "مقترح",
+    "AFFECTE": "مُسند"
   },
   "login": {
     "title": "تسجيل الدخول",
@@ -54,6 +55,7 @@
     "mon_pfe": "مشروعي",
     "mes_livrables": "مستخرجاتي",
     "ma_soutenance": "مناقشتي",
+    "sujets_dispo": "المواضيع المتاحة",
     "vue_ensemble": "نظرة عامة",
     "sujets": "المواضيع",
     "soutenances": "المناقشات",
@@ -94,7 +96,22 @@
     "note_finale": "العلامة النهائية",
     "livrables_title": "المستخرجات",
     "livrables_desc": "أودع تقاريرك وعروضك والوثائق الخاصة بمشروعك. سيُجرى تحليل الانتحال تلقائيًا.",
-    "deposit_btn": "إيداع"
+    "deposit_btn": "إيداع",
+    "sujets_page_title": "المواضيع المتاحة",
+    "sujets_page_sub": "تصفح المواضيع المعتمدة واختر مشروع تخرجك",
+    "sujets_search": "البحث عن موضوع...",
+    "sujets_all_filieres": "جميع التخصصات",
+    "sujets_count": "المواضيع ({{count}})",
+    "sujets_none": "لا توجد مواضيع متاحة",
+    "sujets_proposer": "اقترحه",
+    "sujets_choisir": "اختر هذا الموضوع",
+    "sujets_choisi": "تم الاختيار",
+    "sujets_confirm_title": "تأكيد الاختيار",
+    "sujets_confirm_msg": "هل تريد اختيار هذا الموضوع كمشروع تخرجك؟ لا يمكن التراجع عن هذا الإجراء.",
+    "sujets_confirming": "جارٍ التأكيد...",
+    "sujets_my_proposal": "اقتراحي",
+    "sujets_proposed_for_me": "مقترح لي",
+    "sujets_available": "متاح"
   },
   "livrables": {
     "page_title": "مستخرجاتي",

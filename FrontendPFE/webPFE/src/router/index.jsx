@@ -5,6 +5,7 @@ import Login from '../pages/auth/Login'
 import ChangePassword from '../pages/auth/ChangePassword'
 
 import EtudiantDashboard from '../pages/etudiant/Dashboard'
+import EtudiantSujets from '../pages/etudiant/Sujets'
 import EtudiantLivrables from '../pages/etudiant/Livrables'
 import EtudiantSoutenance from '../pages/etudiant/Soutenance'
 
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
   { path: '/change-password', element: <ChangePassword /> },
 
   { path: '/etudiant', element: guard(['etudiant'], <EtudiantDashboard />) },
+  { path: '/etudiant/sujets', element: guard(['etudiant'], <EtudiantSujets />) },
   { path: '/etudiant/livrables', element: guard(['etudiant'], <EtudiantLivrables />) },
   { path: '/etudiant/soutenance', element: guard(['etudiant'], <EtudiantSoutenance />) },
 

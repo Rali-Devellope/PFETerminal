@@ -11,7 +11,7 @@ from .serializers import (
     ValiderRefuserSerializer, AffecterEncadrantSerializer
 )
 from .filters import SujetFilter
-from .services import valider_sujet, refuser_sujet, affecter_encadrant
+from .services import valider_sujet, refuser_sujet, affecter_encadrant, choisir_sujet
 
 
 class SujetViewSet(viewsets.ModelViewSet):
@@ -25,6 +25,21 @@ class SujetViewSet(viewsets.ModelViewSet):
             return [IsCoordinateur()]
         return [IsAuthenticated()]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs   = super().get_queryset()
+        if user.role == 'etudiant':
+            from django.db.models import Q
+            return qs.filter(
+                Q(propose_par=user) |
+                Q(etudiant_cible=user) |
+                Q(statut='VALIDE', etudiant_cible=None)
+            ).distinct()
+        if user.role in ('encadrant_acad', 'encadrant_entr'):
+            from django.db.models import Q
+            return qs.filter(Q(encadrant=user) | Q(propose_par=user))
+        return qs
+
     def get_serializer_class(self):
         if self.action in ('create', 'update', 'partial_update'):
             return SujetCreateSerializer
@@ -33,14 +48,10 @@ class SujetViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(propose_par=self.request.user)
 
-    def get_queryset(self):
-        user = self.request.user
-        qs   = super().get_queryset()
-        if user.role == 'etudiant':
-            return qs.filter(propose_par=user)
-        if user.role in ('encadrant_acad', 'encadrant_entr'):
-            return qs.filter(Q(encadrant=user) | Q(propose_par=user))
-        return qs
+    @action(detail=True, methods=['post'])
+    def choisir(self, request, pk=None):
+        sujet = choisir_sujet(self.get_object(), request.user)
+        return success_response(data=SujetSerializer(sujet).data, message='Sujet choisi avec succès')
 
     @action(detail=True, methods=['post'])
     def valider(self, request, pk=None):
