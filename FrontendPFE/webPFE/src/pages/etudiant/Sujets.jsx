@@ -5,7 +5,9 @@ import { useAuthStore } from '../../store/authStore'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
-import { getSujets, choisirSujet } from '../../api/sujets'
+import { getSujets, choisirSujet, createSujet } from '../../api/sujets'
+
+const INIT_FORM = { titre: '', description: '', origine: 'academique', filiere: '', annee: new Date().getFullYear() }
 
 export default function EtudiantSujets() {
   const { t } = useTranslation()
@@ -16,6 +18,9 @@ export default function EtudiantSujets() {
   const [filiere, setFiliere] = useState('')
   const [confirmTarget, setConfirmTarget] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState(INIT_FORM)
+  const [formError, setFormError] = useState('')
 
   const NAV_ITEMS = [
     { to: '/etudiant', end: true, label: t('nav.mon_pfe'),
@@ -45,6 +50,30 @@ export default function EtudiantSujets() {
     return matchSearch && matchFiliere
   })
 
+  const proposerMut = useMutation({
+    mutationFn: (data) => createSujet(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sujets-etudiant'] })
+      setShowForm(false)
+      setForm(INIT_FORM)
+      setFormError('')
+    },
+    onError: (e) => {
+      const d = e.response?.data
+      setFormError(d?.error?.message ?? d?.detail ?? JSON.stringify(d) ?? 'Erreur')
+    },
+  })
+
+  const handleProposer = (e) => {
+    e.preventDefault()
+    if (!form.titre || !form.description || !form.filiere || !form.annee) {
+      setFormError('Remplissez tous les champs obligatoires')
+      return
+    }
+    setFormError('')
+    proposerMut.mutate({ ...form, annee: parseInt(form.annee) })
+  }
+
   const choisirMut = useMutation({
     mutationFn: (id) => choisirSujet(id),
     onSuccess: () => {
@@ -68,12 +97,85 @@ export default function EtudiantSujets() {
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>
-          {t('etudiant.sujets_page_title')}
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">{t('etudiant.sujets_page_sub')}</p>
+      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>
+            {t('etudiant.sujets_page_title')}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">{t('etudiant.sujets_page_sub')}</p>
+        </div>
+        <button
+          onClick={() => { setShowForm((v) => !v); setFormError('') }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+          style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)', boxShadow: '0 4px 12px rgba(45,184,75,0.3)' }}
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            {showForm ? <line x1="18" y1="6" x2="6" y2="18"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
+          </svg>
+          {showForm ? t('sujet_form.cancel') : t('sujet_form.proposer_btn')}
+        </button>
       </div>
+
+      {/* Formulaire proposition */}
+      {showForm && (
+        <Card title={t('sujet_form.title_etudiant')} className="mb-5"
+          icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}>
+          <form onSubmit={handleProposer} className="grid sm:grid-cols-2 gap-4">
+            {formError && (
+              <div className="sm:col-span-2 px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
+                {formError}
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.titre')}</label>
+              <input type="text" value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })}
+                placeholder={t('sujet_form.titre_ph')}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none" style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.description')}</label>
+              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder={t('sujet_form.description_ph')} rows={3}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none resize-none" style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.origine')}</label>
+              <select value={form.origine} onChange={(e) => setForm({ ...form, origine: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none bg-white" style={{ borderColor: '#e5e7eb' }}>
+                <option value="academique">{t('sujet_form.academique')}</option>
+                <option value="entreprise">{t('sujet_form.entreprise')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.filiere')}</label>
+              <input type="text" value={form.filiere} onChange={(e) => setForm({ ...form, filiere: e.target.value })}
+                placeholder={t('sujet_form.filiere_ph')}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none" style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.annee')}</label>
+              <input type="number" value={form.annee} onChange={(e) => setForm({ ...form, annee: e.target.value })}
+                min="2020" max="2100"
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none" style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div className="sm:col-span-2 flex justify-end">
+              <button type="submit" disabled={proposerMut.isPending}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: '#2db84b', opacity: proposerMut.isPending ? 0.7 : 1 }}>
+                {proposerMut.isPending ? t('sujet_form.submitting') : t('sujet_form.submit')}
+              </button>
+            </div>
+          </form>
+        </Card>
+      )}
 
       {/* Filtres */}
       <div className="flex flex-wrap gap-3 mb-5">

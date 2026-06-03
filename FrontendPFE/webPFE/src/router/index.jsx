@@ -14,6 +14,7 @@ import CoordinateurSujets from '../pages/coordinateur/Sujets'
 import CoordinateurSoutenances from '../pages/coordinateur/Soutenances'
 
 import EncadrantDashboard from '../pages/encadrant/Dashboard'
+import EncadrantSujets from '../pages/encadrant/Sujets'
 
 import JuryDashboard from '../pages/jury/Dashboard'
 
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
   {
     path: '/encadrant',
     element: guard(['encadrant_acad', 'encadrant_entr'], <EncadrantDashboard />),
+  },
+  {
+    path: '/encadrant/sujets',
+    element: guard(['encadrant_acad', 'encadrant_entr'], <EncadrantSujets />),
   },
 
   { path: '/jury', element: guard(['jury'], <JuryDashboard />) },
