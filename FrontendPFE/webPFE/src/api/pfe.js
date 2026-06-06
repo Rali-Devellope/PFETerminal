@@ -12,3 +12,8 @@ export const validerLivrable = (pfeId, livrableId) =>
   api.post(`/pfe/${pfeId}/livrables/${livrableId}/valider/`)
 export const refuserLivrable = (pfeId, livrableId, data) =>
   api.post(`/pfe/${pfeId}/livrables/${livrableId}/refuser/`, data)
+
+export const getAllLivrables = (params) => api.get('/livrables/', { params })
+export const validerLivrableById = (id, data = {}) => api.post(`/livrables/${id}/valider/`, data)
+export const refuserLivrableById = (id, data) => api.post(`/livrables/${id}/refuser/`, data)
+export const archiverPFE = (id) => api.post(`/pfe/${id}/archiver/`)

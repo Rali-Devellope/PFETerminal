@@ -41,6 +41,7 @@ def classement(request):
     data = [
         {
             'rang': i,
+            'soutenance_id': s.id,
             'etudiant': f"{s.pfe.etudiant.prenom} {s.pfe.etudiant.nom}",
             'filiere': s.pfe.filiere,
             'annee': s.pfe.annee,

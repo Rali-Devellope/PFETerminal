@@ -3,6 +3,7 @@ import ProtectedRoute from '../components/ProtectedRoute'
 
 import Login from '../pages/auth/Login'
 import ChangePassword from '../pages/auth/ChangePassword'
+import Profile from '../pages/auth/Profile'
 
 import EtudiantDashboard from '../pages/etudiant/Dashboard'
 import EtudiantSujets from '../pages/etudiant/Sujets'
@@ -15,12 +16,16 @@ import CoordinateurSoutenances from '../pages/coordinateur/Soutenances'
 
 import EncadrantDashboard from '../pages/encadrant/Dashboard'
 import EncadrantSujets from '../pages/encadrant/Sujets'
+import EncadrantLivrables from '../pages/encadrant/Livrables'
+import EtudiantDetail from '../pages/encadrant/EtudiantDetail'
 
 import JuryDashboard from '../pages/jury/Dashboard'
 
 import AdminUsers from '../pages/admin/Users'
+import ScolariteDashboard from '../pages/scolarite/Dashboard'
 
 import Stats from '../pages/stats/Stats'
+import Notifications from '../pages/notifications/Notifications'
 
 const guard = (roles, element) => (
   <ProtectedRoute roles={roles}>{element}</ProtectedRoute>
@@ -30,6 +35,8 @@ const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
   { path: '/login', element: <Login /> },
   { path: '/change-password', element: <ChangePassword /> },
+  { path: '/profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
+  { path: '/notifications', element: <ProtectedRoute><Notifications /></ProtectedRoute> },
 
   { path: '/etudiant', element: guard(['etudiant'], <EtudiantDashboard />) },
   { path: '/etudiant/sujets', element: guard(['etudiant'], <EtudiantSujets />) },
@@ -57,17 +64,29 @@ const router = createBrowserRouter([
     path: '/encadrant/sujets',
     element: guard(['encadrant_acad', 'encadrant_entr'], <EncadrantSujets />),
   },
+  {
+    path: '/encadrant/livrables',
+    element: guard(['encadrant_acad', 'encadrant_entr'], <EncadrantLivrables />),
+  },
+  {
+    path: '/encadrant/etudiant/:id',
+    element: guard(['encadrant_acad', 'encadrant_entr'], <EtudiantDetail />),
+  },
 
   { path: '/jury', element: guard(['jury'], <JuryDashboard />) },
 
   {
     path: '/admin',
-    element: guard(['admin', 'scolarite'], <AdminUsers />),
+    element: guard(['admin'], <AdminUsers />),
+  },
+  {
+    path: '/scolarite',
+    element: guard(['scolarite'], <ScolariteDashboard />),
   },
 
   {
     path: '/stats',
-    element: guard(['coordinateur', 'admin', 'scolarite'], <Stats />),
+    element: guard(['coordinateur', 'admin', 'scolarite', 'encadrant_acad', 'encadrant_entr'], <Stats />),
   },
 ])
 

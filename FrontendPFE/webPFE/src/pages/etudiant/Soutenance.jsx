@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getMaSoutenance } from '../../api/soutenances'
+import { ReleveButton, AttestationButton } from '../../components/UI/PdfButtons'
 
 function InfoRow({ label, value }) {
   return (
@@ -162,6 +163,12 @@ export default function EtudiantSoutenance() {
               icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>}
             >
               <NoteBar note={s.note_finale} />
+              {s.note_finale >= 10 && (
+                <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50">
+                  <ReleveButton soutenanceId={s.id} />
+                  <AttestationButton soutenanceId={s.id} />
+                </div>
+              )}
             </Card>
           )}
         </div>

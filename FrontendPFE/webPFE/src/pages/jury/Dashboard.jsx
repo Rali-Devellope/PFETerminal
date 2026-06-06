@@ -142,26 +142,81 @@ export default function JuryDashboard() {
           {!isLoading && planifiees.length === 0 && (
             <p className="text-sm text-gray-400 py-4 text-center">{t('jury.no_planif')}</p>
           )}
-          {!isLoading && planifiees.map((s) => (
-            <div key={s.id} className="py-4 flex items-start gap-4 border-b border-gray-50 last:border-0">
-              <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: '#faf5ff' }}>
-                <span className="text-sm font-bold" style={{ color: '#7e22ce' }}>{new Date(s.date).getDate()}</span>
-                <span className="text-[9px] font-medium" style={{ color: '#a78bfa' }}>
-                  {new Date(s.date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}
-                </span>
+          {!isLoading && planifiees.map((s) => {
+            const plagiat = s.pfe?.score_plagiat ?? 0
+            const plagiatColor = plagiat > 30 ? '#ef4444' : plagiat > 20 ? '#f59e0b' : '#2db84b'
+            return (
+              <div key={s.id} className="py-4 border-b border-gray-50 last:border-0">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: '#faf5ff' }}>
+                    <span className="text-sm font-bold" style={{ color: '#7e22ce' }}>{new Date(s.date).getDate()}</span>
+                    <span className="text-[9px] font-medium" style={{ color: '#a78bfa' }}>
+                      {new Date(s.date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>
+                        {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
+                      </p>
+                      <Badge statut={s.statut} />
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {new Date(s.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · {s.salle} · {s.duree} {t('common.min')}
+                    </p>
+                    <p className="text-xs font-medium mt-1" style={{ color: '#1a2744' }}>
+                      {s.pfe?.titre ?? s.pfe?.sujet?.titre}
+                    </p>
+                  </div>
+                  <button onClick={() => setNoteTarget(s)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)' }}>
+                    {t('jury.noter_btn')}
+                  </button>
+                </div>
+
+                {/* Fiche PFE */}
+                <div className="mt-3 ms-16 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Filière</p>
+                    <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>{s.pfe?.filiere ?? '—'}</p>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Encadrant</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: '#1a2744' }}>
+                      {s.pfe?.encadrant_acad ? `${s.pfe.encadrant_acad.prenom} ${s.pfe.encadrant_acad.nom}` : '—'}
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Année</p>
+                    <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>{s.pfe?.annee ?? '—'}</p>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Score plagiat</p>
+                    <p className="text-xs font-bold" style={{ color: plagiatColor }}>{plagiat}%</p>
+                  </div>
+                </div>
+
+                {/* Livrables téléchargeables */}
+                {s.pfe?.livrables?.length > 0 && (
+                  <div className="mt-2 ms-16 flex flex-wrap gap-2">
+                    {s.pfe.livrables.filter((l) => l.fichier && l.statut === 'VALIDE').map((l) => (
+                      <a key={l.id} href={l.fichier} target="_blank" rel="noreferrer"
+                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:opacity-80"
+                         style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        {l.type_livrable_display ?? l.type_livrable}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>
-                  {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {new Date(s.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · {s.salle} · {s.duree} {t('common.min')}
-                </p>
-                <p className="text-xs text-gray-400 truncate mt-0.5">{s.pfe?.sujet?.titre}</p>
-              </div>
-              <Badge statut={s.statut} />
-            </div>
-          ))}
+            )
+          })}
         </Card>
 
         <Card title={t('jury.term_title', { count: terminees.length })}

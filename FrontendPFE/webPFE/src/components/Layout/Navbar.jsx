@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useNotifStore } from '../../store/notifStore'
 import { useAuth } from '../../hooks/useAuth'
@@ -21,6 +22,7 @@ export default function Navbar({ onToggleSidebar }) {
   const { user } = useAuthStore()
   const { unreadCount } = useNotifStore()
   const { logout } = useAuth()
+  const navigate = useNavigate()
   const [showUser, setShowUser] = useState(false)
 
   const isAr = i18n.language === 'ar'
@@ -88,6 +90,7 @@ export default function Navbar({ onToggleSidebar }) {
 
         {/* Bell */}
         <button
+          onClick={() => navigate('/notifications')}
           className="relative text-white/70 p-2 rounded-lg hover:bg-white/10 hover:text-white transition"
           aria-label={t('nav.notifications')}
         >
@@ -140,6 +143,17 @@ export default function Navbar({ onToggleSidebar }) {
                   <p className="text-white text-xs font-semibold">{user?.prenom} {user?.nom}</p>
                   <p className="text-[11px] truncate mt-0.5" style={{ color: '#7fb3d3' }}>{user?.email}</p>
                 </div>
+                <button
+                  onClick={() => { setShowUser(false); navigate('/profile') }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5"
+                  style={{ color: '#93c5fd' }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  Mon profil
+                </button>
                 <button
                   onClick={() => { setShowUser(false); logout() }}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs transition hover:bg-white/5"

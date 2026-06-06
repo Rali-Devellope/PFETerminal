@@ -24,7 +24,7 @@ export default function CoordinateurDashboard() {
   ]
 
   const { data: statsRes } = useQuery({ queryKey: ['stats-globales'], queryFn: () => getStatsGlobales() })
-  const { data: sujetsRes } = useQuery({ queryKey: ['sujets'], queryFn: () => getSujets({ statut: 'EN_ATTENTE' }) })
+  const { data: sujetsRes } = useQuery({ queryKey: ['sujets'], queryFn: () => getSujets({ statut: 'PROPOSE' }) })
   const { data: pfesRes } = useQuery({ queryKey: ['pfe-list'], queryFn: () => getPFEs() })
   const { data: soutRes } = useQuery({ queryKey: ['soutenances'], queryFn: () => getSoutenances() })
 

@@ -88,6 +88,14 @@ def calculer_note_finale(soutenance):
     return soutenance
 
 
+def _get_mention(note):
+    if note >= 16: return "Très bien"
+    if note >= 14: return "Bien"
+    if note >= 12: return "Assez bien"
+    if note >= 10: return "Passable"
+    return "Insuffisant"
+
+
 def generer_pv_pdf(soutenance):
     try:
         from reportlab.lib.pagesizes import A4
@@ -134,6 +142,212 @@ def generer_pv_pdf(soutenance):
             y -= 10
             c.setFont("Helvetica-Bold", 13)
             c.drawString(60, y, f"Note finale : {soutenance.note_finale}/20")
+
+        c.save()
+        buf.seek(0)
+        return buf
+    except ImportError:
+        raise ValidationError("reportlab n'est pas installé.")
+
+
+def generer_releve_notes(soutenance):
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        from reportlab.lib import colors
+        import io
+
+        if soutenance.note_finale is None:
+            raise ValidationError("La note finale n'a pas encore été calculée.")
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4)
+        w, h = A4
+        pfe = soutenance.pfe
+        etudiant = pfe.etudiant
+
+        # En-tête
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.rect(0, h - 80, w, 80, fill=1, stroke=0)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(w / 2, h - 35, "RELEVÉ DE NOTES — PFE")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(w / 2, h - 55, "ISCAE Mauritanie — Institut Supérieur de Comptabilité et d'Administration des Entreprises")
+
+        c.setFillColorRGB(0, 0, 0)
+        y = h - 110
+
+        # Infos étudiant
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(60, y, "Informations de l'étudiant")
+        c.line(60, y - 4, 300, y - 4)
+        y -= 25
+        c.setFont("Helvetica", 11)
+        infos = [
+            ("Nom complet", f"{etudiant.prenom} {etudiant.nom}"),
+            ("Email", etudiant.email),
+            ("Filière", pfe.filiere),
+            ("Année universitaire", str(pfe.annee)),
+        ]
+        for label, value in infos:
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(60, y, f"{label} :")
+            c.setFont("Helvetica", 10)
+            c.drawString(200, y, value)
+            y -= 18
+        y -= 10
+
+        # PFE
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(60, y, "Projet de Fin d'Études")
+        c.line(60, y - 4, 300, y - 4)
+        y -= 25
+        c.setFont("Helvetica", 10)
+        c.drawString(60, y, "Titre :")
+        c.setFont("Helvetica-Bold", 10)
+        titre = pfe.titre if len(pfe.titre) <= 60 else pfe.titre[:57] + "..."
+        c.drawString(120, y, titre)
+        y -= 18
+
+        if soutenance.date:
+            c.setFont("Helvetica", 10)
+            c.drawString(60, y, "Date de soutenance :")
+            c.drawString(200, y, soutenance.date.strftime('%d/%m/%Y'))
+            y -= 18
+        y -= 15
+
+        # Notes
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(60, y, "Détail des notes")
+        c.line(60, y - 4, 300, y - 4)
+        y -= 25
+
+        for note in soutenance.notes.select_related('evaluateur').exclude(type='finale'):
+            c.setFont("Helvetica", 10)
+            type_label = {"jury": "Jury", "encadrant": "Encadrant"}.get(note.type, note.type)
+            c.drawString(80, y, f"• {type_label} — {note.evaluateur.prenom} {note.evaluateur.nom}")
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(380, y, f"{note.valeur}/20")
+            y -= 18
+
+        y -= 10
+        mention = _get_mention(soutenance.note_finale)
+
+        # Note finale encadrée
+        c.setFillColorRGB(0.94, 1.0, 0.95)
+        c.rect(55, y - 10, w - 110, 36, fill=1, stroke=0)
+        c.setFillColorRGB(0.12, 0.55, 0.2)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(70, y + 12, "Note finale :")
+        c.drawString(200, y + 12, f"{soutenance.note_finale}/20  —  {mention}")
+        c.setFillColorRGB(0, 0, 0)
+
+        y -= 50
+        c.setFont("Helvetica", 9)
+        c.setFillColorRGB(0.5, 0.5, 0.5)
+        c.drawCentredString(w / 2, 40, f"Document généré le {soutenance.updated_at.strftime('%d/%m/%Y')} — ISCAE Mauritanie")
+
+        c.save()
+        buf.seek(0)
+        return buf
+    except ImportError:
+        raise ValidationError("reportlab n'est pas installé.")
+
+
+def generer_attestation(soutenance):
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        import io
+
+        if soutenance.note_finale is None:
+            raise ValidationError("La note finale n'a pas encore été calculée.")
+        if soutenance.note_finale < 10:
+            raise ValidationError("L'étudiant n'a pas validé son PFE (note < 10).")
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4)
+        w, h = A4
+        pfe = soutenance.pfe
+        etudiant = pfe.etudiant
+        mention = _get_mention(soutenance.note_finale)
+
+        # Bordure décorative
+        c.setStrokeColorRGB(0.118, 0.227, 0.373)
+        c.setLineWidth(3)
+        c.rect(30, 30, w - 60, h - 60, fill=0, stroke=1)
+        c.setLineWidth(1)
+        c.rect(40, 40, w - 80, h - 80, fill=0, stroke=1)
+
+        # Logo texte ISCAE
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(w / 2, h - 90, "ISCAE MAURITANIE")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(w / 2, h - 108, "Institut Supérieur de Comptabilité et d'Administration des Entreprises")
+
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.line(100, h - 120, w - 100, h - 120)
+
+        # Titre
+        c.setFillColorRGB(0, 0, 0)
+        c.setFont("Helvetica-Bold", 22)
+        c.drawCentredString(w / 2, h - 175, "ATTESTATION DE RÉUSSITE")
+        c.setFont("Helvetica", 12)
+        c.drawCentredString(w / 2, h - 200, "Projet de Fin d'Études")
+
+        # Corps
+        y = h - 260
+        c.setFont("Helvetica", 12)
+        c.drawCentredString(w / 2, y, "L'ISCAE Mauritanie atteste que")
+        y -= 35
+
+        c.setFont("Helvetica-Bold", 18)
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.drawCentredString(w / 2, y, f"{etudiant.prenom.upper()} {etudiant.nom.upper()}")
+        y -= 30
+
+        c.setFillColorRGB(0, 0, 0)
+        c.setFont("Helvetica", 12)
+        c.drawCentredString(w / 2, y, f"de la filière {pfe.filiere} — promotion {pfe.annee}")
+        y -= 45
+
+        c.setFont("Helvetica", 11)
+        c.drawCentredString(w / 2, y, "a soutenu avec succès le projet de fin d'études intitulé :")
+        y -= 30
+
+        c.setFont("Helvetica-Bold", 12)
+        titre = pfe.titre if len(pfe.titre) <= 65 else pfe.titre[:62] + "..."
+        c.drawCentredString(w / 2, y, f'« {titre} »')
+        y -= 45
+
+        c.setFont("Helvetica", 11)
+        c.drawCentredString(w / 2, y, f"le {soutenance.date.strftime('%d %B %Y')} avec la note de")
+        y -= 30
+
+        c.setFont("Helvetica-Bold", 24)
+        c.setFillColorRGB(0.118, 0.55, 0.2)
+        c.drawCentredString(w / 2, y, f"{soutenance.note_finale}/20")
+        y -= 25
+
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(w / 2, y, f"Mention : {mention}")
+        c.setFillColorRGB(0, 0, 0)
+
+        # Signature
+        y -= 70
+        c.setFont("Helvetica", 10)
+        c.drawString(w - 220, y, "Le Directeur de l'ISCAE")
+        y -= 50
+        c.line(w - 220, y, w - 80, y)
+        y -= 15
+        c.drawString(w - 220, y, "Signature et cachet")
+
+        # Pied de page
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.5, 0.5, 0.5)
+        c.drawCentredString(w / 2, 60, f"Délivré le {soutenance.updated_at.strftime('%d/%m/%Y')} — Document officiel ISCAE Mauritanie")
 
         c.save()
         buf.seek(0)

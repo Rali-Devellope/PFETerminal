@@ -7,7 +7,7 @@ const ROLE_DASHBOARDS = {
   encadrant_entr: '/encadrant',
   coordinateur:   '/coordinateur',
   jury:           '/jury',
-  scolarite:      '/admin',
+  scolarite:      '/scolarite',
   admin:          '/admin',
 }
 

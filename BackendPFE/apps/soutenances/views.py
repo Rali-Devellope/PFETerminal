@@ -13,7 +13,8 @@ from .serializers import (
 from .filters import SoutenanceFilter
 from .services import (
     planifier_soutenance, affecter_jury,
-    soumettre_note, calculer_note_finale, generer_pv_pdf,
+    soumettre_note, calculer_note_finale,
+    generer_pv_pdf, generer_releve_notes, generer_attestation,
 )
 
 
@@ -91,4 +92,18 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         buf = generer_pv_pdf(self.get_object())
         response = HttpResponse(buf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="pv_soutenance_{pk}.pdf"'
+        return response
+
+    @action(detail=True, methods=['get'])
+    def releve_pdf(self, request, pk=None):
+        buf = generer_releve_notes(self.get_object())
+        response = HttpResponse(buf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="releve_notes_{pk}.pdf"'
+        return response
+
+    @action(detail=True, methods=['get'])
+    def attestation_pdf(self, request, pk=None):
+        buf = generer_attestation(self.get_object())
+        response = HttpResponse(buf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="attestation_{pk}.pdf"'
         return response

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from core.permissions import IsAdmin, IsAdminOrCoordinateur
+from core.permissions import IsAdmin, IsAdminOrCoordinateur, IsEncadrant
 from core.throttling import LoginRateThrottle
 from core.exceptions import success_response, error_response
 from .models import CustomUser
@@ -35,6 +35,12 @@ class UserListView(generics.ListAPIView):
     permission_classes = [IsAdminOrCoordinateur]
     serializer_class = UserSerializer
     queryset = CustomUser.objects.all().order_by('-created_at')
+
+
+class EtudiantsListView(generics.ListAPIView):
+    permission_classes = [IsAdminOrCoordinateur | IsEncadrant]
+    serializer_class = UserSerializer
+    queryset = CustomUser.objects.filter(role='etudiant', is_active=True).order_by('nom', 'prenom')
 
 
 class UserDetailView(generics.RetrieveUpdateAPIView):

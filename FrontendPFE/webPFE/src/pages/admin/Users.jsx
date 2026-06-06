@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card, { StatCard } from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
-import { getUsers, createUser } from '../../api/auth'
+import { getUsers, createUser, updateUser } from '../../api/auth'
 
 const ROLE_VALUES = ['etudiant','encadrant_acad','encadrant_entr','jury','coordinateur','admin','scolarite']
 const FILIERES = ['Finance','Comptabilité','Audit','Management','Informatique']
@@ -40,6 +40,8 @@ export default function AdminUsers() {
   const [formError, setFormError] = useState('')
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  const [editTarget, setEditTarget] = useState(null)
+  const [editForm, setEditForm] = useState({ nom: '', prenom: '', role: '', is_active: true })
 
   const NAV_ITEMS = [
     { to: '/admin', end: true, label: t('nav.utilisateurs'),
@@ -60,6 +62,16 @@ export default function AdminUsers() {
     const matchSearch = !search || `${u.prenom} ${u.nom} ${u.email}`.toLowerCase().includes(search.toLowerCase())
     const matchRole = !roleFilter || u.role === roleFilter
     return matchSearch && matchRole
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => updateUser(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditTarget(null) },
+  })
+
+  const toggleActiveMut = useMutation({
+    mutationFn: ({ id, is_active }) => updateUser(id, { is_active }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   })
 
   const createMut = useMutation({
@@ -98,6 +110,79 @@ export default function AdminUsers() {
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
+      {/* Modal modification */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-base font-bold mb-4" style={{ color: '#1a2744' }}>
+              {t('admin.edit_title')} — {editTarget.prenom} {editTarget.nom}
+            </h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('admin.prenom')}</label>
+                  <input type="text" value={editForm.prenom}
+                    onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+                    style={{ borderColor: '#e5e7eb' }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('admin.nom')}</label>
+                  <input type="text" value={editForm.nom}
+                    onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+                    style={{ borderColor: '#e5e7eb' }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('admin.role')}</label>
+                <select value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none bg-white"
+                  style={{ borderColor: '#e5e7eb' }}>
+                  {ROLE_VALUES.map((r) => <option key={r} value={r}>{t(`roles.${r}`)}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                   style={{ backgroundColor: editForm.is_active ? '#f0fdf4' : '#fef2f2' }}>
+                <span className="text-sm font-medium"
+                      style={{ color: editForm.is_active ? '#15803d' : '#b91c1c' }}>
+                  {editForm.is_active ? t('admin.active') : t('admin.inactive')}
+                </span>
+                <button
+                  onClick={() => setEditForm({ ...editForm, is_active: !editForm.is_active })}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  style={{
+                    backgroundColor: editForm.is_active ? '#fef2f2' : '#f0fdf4',
+                    color: editForm.is_active ? '#b91c1c' : '#15803d',
+                  }}>
+                  {editForm.is_active ? t('admin.deactivate') : t('admin.activate')}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setEditTarget(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm border font-medium"
+                style={{ borderColor: '#e5e7eb', color: '#6b7280' }}>
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => updateMut.mutate({ id: editTarget.id, data: editForm })}
+                disabled={updateMut.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: '#2db84b', opacity: updateMut.isPending ? 0.7 : 1 }}>
+                {updateMut.isPending ? t('admin.saving') : t('admin.save_btn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>{t('admin.title')}</h1>
@@ -204,18 +289,48 @@ export default function AdminUsers() {
         {!isLoading && filtered.length > 0 && (
           <div className="divide-y divide-gray-50">
             {filtered.map((u) => (
-              <div key={u.id} className="py-3.5 flex items-center gap-4">
+              <div key={u.id} className="py-3.5 flex items-center gap-4"
+                   style={{ opacity: u.is_active ? 1 : 0.5 }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 text-white"
                      style={{ backgroundColor: ROLE_COLORS[u.role]?.color ?? '#6b7280' }}>
                   {u.prenom?.[0]}{u.nom?.[0]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>{u.prenom} {u.nom}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>{u.prenom} {u.nom}</p>
+                    {!u.is_active && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
+                        {t('admin.inactive')}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {u.filiere && <span className="text-xs text-gray-400">{u.filiere}</span>}
                   <RoleBadge role={u.role} />
+                  <button
+                    onClick={() => { setEditTarget(u); setEditForm({ nom: u.nom, prenom: u.prenom, role: u.role, is_active: u.is_active }) }}
+                    className="p-1.5 rounded-lg transition hover:bg-gray-100"
+                    title={t('admin.edit_btn')}>
+                    <svg width="14" height="14" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => toggleActiveMut.mutate({ id: u.id, is_active: !u.is_active })}
+                    disabled={toggleActiveMut.isPending}
+                    className="p-1.5 rounded-lg transition hover:bg-gray-100"
+                    title={u.is_active ? t('admin.deactivate') : t('admin.activate')}>
+                    <svg width="14" height="14" fill="none" strokeWidth="2" viewBox="0 0 24 24"
+                         stroke={u.is_active ? '#ef4444' : '#2db84b'}>
+                      {u.is_active
+                        ? <><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></>
+                        : <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>
+                      }
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}

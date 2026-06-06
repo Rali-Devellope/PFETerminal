@@ -7,6 +7,7 @@ import Badge from '../../components/UI/Badge'
 import { getSoutenances, planifierSoutenance, affecterJury, calculerNoteFinale } from '../../api/soutenances'
 import { getPFEs } from '../../api/pfe'
 import { getUsers } from '../../api/auth'
+import { PVButton, ReleveButton } from '../../components/UI/PdfButtons'
 
 const INIT_FORM = { pfe: '', date: '', salle: '', duree: 60 }
 
@@ -224,6 +225,12 @@ export default function CoordinateurSoutenances() {
                       style={{ backgroundColor: '#0ea5e9' }}>
                       {t('coordinateur.calculer')}
                     </button>
+                  )}
+                  {s.statut === 'TERMINEE' && s.note_finale != null && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      <PVButton soutenanceId={s.id} />
+                      <ReleveButton soutenanceId={s.id} />
+                    </div>
                   )}
                 </div>
               </div>

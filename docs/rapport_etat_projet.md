@@ -1,5 +1,5 @@
 # Rapport d'état — GestionPFE ISCAE
-**Date :** 03 juin 2026  
+**Date :** 04 juin 2026  
 **Projet :** Application de gestion des Projets de Fin d'Études — ISCAE Mauritanie  
 **Stack :** Django DDD + React + PostgreSQL + SimpleJWT
 
@@ -85,31 +85,79 @@ GestionPFE/
 
 ---
 
-## 4. Fonctionnalités manquantes
+## 4. Fonctionnalités réalisées (session 2 — juin 2026)
 
-### Fonctionnalités métier
-
-| Fonctionnalité | Priorité | Détail |
-|----------------|----------|--------|
-| Page sujets disponibles (étudiant) | Haute | L'étudiant ne peut pas encore parcourir et choisir un sujet |
-| Validation livrables (encadrant) | Haute | L'encadrant ne peut pas valider/refuser les livrables déposés |
-| Dashboard Scolarité | Moyenne | Rôle redirigé vers l'admin, pas d'interface propre |
-| Page statistiques | Moyenne | Route `/stats` présente dans le menu mais page inexistante |
-| Génération PDF officiels | Moyenne | PV de soutenance, relevé de notes, attestation (reportlab prévu) |
-| Détection plagiat | Basse | Champ `score_plagiat` en base mais aucun service ne le calcule |
-
-### Backend
-
-| Module | État | Détail |
-|--------|------|--------|
-| `apps/statistiques/` | Vide | Modèle vide, vues non implémentées |
-| `apps/notifications/` | Partiel | WebSockets non testés, désactivés en dev |
-| Génération PDF | Non fait | Dépendance reportlab installée mais services non écrits |
-| Upload fichiers | Non vérifié | `MEDIA_ROOT` configuré, flow end-to-end non testé |
+| Fonctionnalité | État |
+|----------------|------|
+| Page sujets étudiant (parcourir + choisir + proposer) | ✅ Fait |
+| Page sujets encadrant (proposer + liste des propositions) | ✅ Fait |
+| Validation livrables par l'encadrant (valider/refuser avec motif) | ✅ Fait |
+| Dashboard Scolarité (stats + classement + exports) | ✅ Fait |
+| Page Statistiques (corrigée, filtre filière/année, exports) | ✅ Fait |
+| Fix workflow coordinateur (statut PROPOSÉ au lieu de EN_ATTENTE) | ✅ Fait |
+| Endpoint `/auth/users/etudiants/` accessible aux encadrants | ✅ Fait |
+| Accès stats pour les encadrants | ✅ Fait |
+| Logo ISCAE (navbar + login) | ✅ Fait |
+| Traductions FR/AR complètes (i18next) + RTL | ✅ Fait |
 
 ---
 
-## 5. Points de sécurité à adresser avant production
+## 5. Fonctionnalités restantes
+
+| Fonctionnalité | Priorité | Détail |
+|----------------|----------|--------|
+| Génération PDF officiels | Moyenne | PV de soutenance, relevé de notes, attestation |
+| Détection plagiat | Basse | Champ `score_plagiat` en base mais calcul simulé |
+| Déploiement | Haute | Docker + Nginx + HTTPS + production |
+
+---
+
+## 6. Plan de test — Checklist par rôle
+
+### 🔐 Authentification (tous les rôles)
+- [ ] Login avec compte valide → redirige vers le bon dashboard
+- [ ] Login avec mauvais mot de passe → "Identifiants invalides"
+- [ ] Logout → redirige vers /login
+- [ ] Première connexion (`is_first_login=True`) → page changement mot de passe
+
+### 👨‍🎓 Étudiant
+- [ ] Dashboard → affiche les infos du PFE
+- [ ] Sujets disponibles → liste des sujets VALIDÉ
+- [ ] Proposer un sujet → formulaire, sujet créé avec statut PROPOSÉ
+- [ ] Choisir un sujet → bouton visible sur les sujets VALIDÉ disponibles
+- [ ] Mes Livrables → déposer un fichier
+- [ ] Ma Soutenance → affiche les infos
+
+### 👨‍🏫 Encadrant
+- [ ] Dashboard → liste des étudiants encadrés
+- [ ] Sujets → proposer un sujet avec étudiant cible (dropdown rempli)
+- [ ] Livrables → voir les livrables, valider ou refuser avec motif
+- [ ] Statistiques → page accessible sans erreur
+
+### 🗂️ Coordinateur
+- [ ] Dashboard → stats + sujets en attente (PROPOSÉ)
+- [ ] Sujets → boutons Valider/Refuser visibles sur sujets PROPOSÉ
+- [ ] Soutenances → planifier une soutenance, affecter jury
+
+### ⚖️ Jury
+- [ ] Dashboard → liste des soutenances assignées
+- [ ] Soumettre une note → modal fonctionne
+
+### 📋 Scolarité
+- [ ] Dashboard → stats globales affichées
+- [ ] Classement → tableau visible (si notes finales existent)
+- [ ] Export CSV / Excel / PDF → téléchargement déclenché
+
+### 🔧 Admin
+- [ ] Utilisateurs → liste + créer un nouveau compte
+
+### 🌐 Bilingue
+- [ ] Switcher FR/ع → interface change de langue
+- [ ] Direction RTL → sidebar passe à droite en arabe
+
+---
+
+## 7. Points de sécurité à adresser avant production
 
 | Point | Risque | Solution recommandée |
 |-------|--------|----------------------|
@@ -121,7 +169,7 @@ GestionPFE/
 
 ---
 
-## 6. Infrastructure manquante pour la production
+## 8. Infrastructure manquante pour la production
 
 | Élément | Détail |
 |---------|--------|
@@ -135,23 +183,23 @@ GestionPFE/
 
 ---
 
-## 7. Résumé — Prêt pour
+## 9. Résumé — Prêt pour
 
 | Contexte | État |
 |----------|------|
-| Démo interne / présentation | ✅ Oui (créer les utilisateurs via shell) |
-| Tests fonctionnels | ✅ Oui (flux principal complet) |
-| Démo client complète | ⚠️ Partiel (manque Scolarité, Stats, PDF) |
-| Production réelle | ❌ Non (infrastructure, sécurité, fonctionnalités métier) |
+| Démo interne / présentation | ✅ Oui |
+| Tests fonctionnels par rôle | ✅ Oui (checklist section 6) |
+| Démo client complète | ✅ Oui (tous les dashboards opérationnels) |
+| Production réelle | ❌ Non (infrastructure, PDF, sécurité) |
 
 ---
 
-## 8. Prochaines étapes recommandées
+## 10. Prochaines étapes recommandées
 
-1. **Court terme** — Page sujets pour l'étudiant + validation livrables encadrant
-2. **Moyen terme** — Dashboard Scolarité + page Stats + génération PDF
-3. **Avant déploiement** — Docker + nginx + HTTPS + refresh token HttpOnly
-4. **Optionnel** — Détection plagiat (intégration API externe ou algorithme TF-IDF)
+1. **Tester** — Valider la checklist section 6 pour chaque rôle
+2. **Génération PDF** — PV de soutenance, relevé de notes, attestation
+3. **Déploiement** — Docker + Nginx + HTTPS + variables production
+4. **Optionnel** — Détection plagiat réelle (TF-IDF ou API externe)
 
 ---
 

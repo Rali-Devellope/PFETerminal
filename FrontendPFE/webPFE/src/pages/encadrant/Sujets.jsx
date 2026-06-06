@@ -5,7 +5,7 @@ import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getSujets, createSujet } from '../../api/sujets'
-import { getUsers } from '../../api/auth'
+import { getEtudiants } from '../../api/auth'
 
 const INIT_FORM = {
   titre: '', description: '', origine: 'academique',
@@ -32,17 +32,17 @@ export default function EncadrantSujets() {
     queryKey: ['sujets-encadrant'],
     queryFn: () => getSujets(),
   })
-  const { data: usersRes } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => getUsers(),
+  const { data: etudiantsRes } = useQuery({
+    queryKey: ['etudiants-list'],
+    queryFn: () => getEtudiants(),
     enabled: showForm,
   })
 
   const sujets = sujetsRes?.data?.results ?? sujetsRes?.data?.data ?? []
   const sujetsArr = Array.isArray(sujets) ? sujets : []
 
-  const users = usersRes?.data?.results ?? usersRes?.data?.data ?? usersRes?.data ?? []
-  const etudiants = Array.isArray(users) ? users.filter((u) => u.role === 'etudiant') : []
+  const etudiantsRaw = etudiantsRes?.data?.results ?? etudiantsRes?.data?.data ?? etudiantsRes?.data ?? []
+  const etudiants = Array.isArray(etudiantsRaw) ? etudiantsRaw : []
 
   const proposerMut = useMutation({
     mutationFn: (data) => createSujet(data),

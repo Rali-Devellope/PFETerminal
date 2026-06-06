@@ -1,21 +1,27 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card, { StatCard } from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getPFEs } from '../../api/pfe'
-import { getSoutenances } from '../../api/soutenances'
+import { getSoutenances, soumettreNote } from '../../api/soutenances'
 import { useAuthStore } from '../../store/authStore'
 
 export default function EncadrantDashboard() {
   const { t } = useTranslation()
   const { user } = useAuthStore()
+  const qc = useQueryClient()
+  const navigate = useNavigate()
 
   const NAV_ITEMS = [
     { to: '/encadrant', end: true, label: t('nav.vue_ensemble'),
       icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
     { to: '/encadrant/sujets', label: t('nav.sujets'),
       icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
+    { to: '/encadrant/livrables', label: t('nav.mes_livrables'),
+      icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
     { to: '/stats', label: t('nav.statistiques'),
       icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   ]
@@ -37,9 +43,59 @@ export default function EncadrantDashboard() {
   const enCours = pfesArr.filter((p) => p.statut === 'EN_COURS').length
   const termines = pfesArr.filter((p) => p.statut === 'TERMINE').length
   const prochaine = soutsArr.find((s) => s.statut === 'PLANIFIEE')
+  const [noteTarget, setNoteTarget] = useState(null)
+  const [noteVal, setNoteVal] = useState('')
+  const [noteComment, setNoteComment] = useState('')
+
+  const noteMut = useMutation({
+    mutationFn: ({ id, data }) => soumettreNote(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['soutenances-encadrant'] }); setNoteTarget(null); setNoteVal(''); setNoteComment('') },
+  })
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
+      {/* Modal notation encadrant */}
+      {noteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-base font-bold mb-1" style={{ color: '#1a2744' }}>Ma note — Encadrant</h3>
+            <p className="text-sm text-gray-400 mb-4">{noteTarget.pfe?.etudiant?.prenom} {noteTarget.pfe?.etudiant?.nom}</p>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">Note * (0 – 20)</label>
+              <input type="number" min="0" max="20" step="0.5" value={noteVal}
+                onChange={(e) => setNoteVal(e.target.value)}
+                placeholder="Ex : 14.5" autoFocus
+                className="w-full px-4 py-3 rounded-xl text-sm border outline-none"
+                style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div className="mb-5">
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">Commentaire</label>
+              <textarea value={noteComment} onChange={(e) => setNoteComment(e.target.value)} rows={3}
+                placeholder="Observations sur le travail de l'étudiant..."
+                className="w-full px-4 py-3 rounded-xl text-sm border outline-none resize-none"
+                style={{ borderColor: '#e5e7eb' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setNoteTarget(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm border font-medium"
+                style={{ borderColor: '#e5e7eb', color: '#6b7280' }}>
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => noteMut.mutate({ id: noteTarget.id, data: { valeur: parseFloat(noteVal), type: 'encadrant', commentaire: noteComment } })}
+                disabled={!noteVal || noteMut.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: noteVal ? '#2db84b' : '#86c99a' }}>
+                {noteMut.isPending ? 'Envoi...' : 'Soumettre'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>
           {t('encadrant.hello', { name: user?.prenom })}
@@ -71,7 +127,8 @@ export default function EncadrantDashboard() {
           {!pfesLoading && pfesArr.length > 0 && (
             <div className="divide-y divide-gray-50">
               {pfesArr.map((p) => (
-                <div key={p.id} className="py-4 flex items-center gap-4">
+                <div key={p.id} className="py-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 rounded-xl px-2 -mx-2 transition"
+                     onClick={() => navigate(`/encadrant/etudiant/${p.id}`)}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 text-white"
                        style={{ backgroundColor: '#1e3a5f' }}>
                     {p.etudiant?.prenom?.[0]}{p.etudiant?.nom?.[0]}
@@ -133,22 +190,36 @@ export default function EncadrantDashboard() {
             <p className="text-sm text-gray-400 py-4 text-center">{t('encadrant.no_done')}</p>
           ) : (
             <div className="space-y-2">
-              {soutsArr.filter((s) => s.statut === 'TERMINEE').map((s) => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#f0fdf4' }}>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: '#1a2744' }}>
-                      {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
-                    </p>
-                    <p className="text-xs text-gray-400">{new Date(s.date).toLocaleDateString('fr-FR')} · {s.salle}</p>
+              {soutsArr.filter((s) => s.statut === 'TERMINEE').map((s) => {
+                const maNote = s.notes?.find((n) => n.evaluateur?.id === user?.id && n.type === 'encadrant')
+                return (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#f0fdf4' }}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: '#1a2744' }}>
+                        {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
+                      </p>
+                      <p className="text-xs text-gray-400">{new Date(s.date).toLocaleDateString('fr-FR')} · {s.salle}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {maNote
+                        ? <span className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                            Ma note : {maNote.valeur}/20
+                          </span>
+                        : <button onClick={() => setNoteTarget(s)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                            style={{ backgroundColor: '#2db84b' }}>
+                            {t('jury.noter_btn')}
+                          </button>
+                      }
+                      {s.note_finale != null && (
+                        <span className="text-sm font-bold" style={{ color: s.note_finale >= 10 ? '#15803d' : '#b91c1c' }}>
+                          {s.note_finale}/20
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {s.note_finale != null && (
-                    <span className="text-sm font-bold flex-shrink-0"
-                          style={{ color: s.note_finale >= 10 ? '#15803d' : '#b91c1c' }}>
-                      {s.note_finale}/20
-                    </span>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </Card>

@@ -35,7 +35,7 @@ export default function EtudiantSujets() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['sujets-etudiant'],
-    queryFn: () => getSujets({ statut: 'VALIDE' }),
+    queryFn: () => getSujets(),
   })
 
   const sujets = data?.data?.results ?? data?.data?.data ?? []
@@ -93,7 +93,10 @@ export default function EtudiantSujets() {
     return { label: t('etudiant.sujets_available'), color: '#2db84b' }
   }
 
-  const canChoose = (s) => !s.etudiant_cible || s.etudiant_cible?.id === user?.id
+  const canChoose = (s) =>
+    s.statut === 'VALIDE' &&
+    s.propose_par?.id !== user?.id &&
+    (!s.etudiant_cible || s.etudiant_cible?.id === user?.id)
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
@@ -256,7 +259,7 @@ export default function EtudiantSujets() {
                   </div>
 
                   {/* Action */}
-                  {canChoose(s) && s.propose_par?.id !== user?.id && (
+                  {canChoose(s) && (
                     <button
                       onClick={() => { setConfirmTarget(s); setErrorMsg('') }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex-shrink-0"
