@@ -88,6 +88,67 @@ def calculer_note_finale(soutenance):
     return soutenance
 
 
+def generer_planning_pdf(soutenances):
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        import io
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4)
+        w, h = A4
+
+        # En-tête
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.rect(0, h - 70, w, 70, fill=1, stroke=0)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(w / 2, h - 30, "PLANNING DES SOUTENANCES PFE")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(w / 2, h - 48, "ISCAE Mauritanie")
+
+        c.setFillColorRGB(0, 0, 0)
+        y = h - 95
+
+        # En-tête tableau
+        cols = [50, 120, 250, 365, 435, 500]
+        headers = ["Date", "Heure", "Étudiant", "Salle", "Durée", "Jury"]
+        c.setFont("Helvetica-Bold", 9)
+        for col, h_label in zip(cols, headers):
+            c.drawString(col, y, h_label)
+        y -= 5
+        c.line(45, y, w - 45, y)
+        y -= 12
+
+        c.setFont("Helvetica", 8)
+        for s in soutenances:
+            if y < 60:
+                c.showPage()
+                y = h - 60
+                c.setFont("Helvetica", 8)
+            jury = ", ".join(f"{m.prenom[0]}. {m.nom}" for m in s.membres_jury.all()[:2])
+            c.drawString(cols[0], y, s.date.strftime('%d/%m/%Y'))
+            c.drawString(cols[1], y, s.date.strftime('%H:%M'))
+            etudiant = f"{s.pfe.etudiant.prenom} {s.pfe.etudiant.nom}"
+            c.drawString(cols[2], y, etudiant[:22])
+            c.drawString(cols[3], y, s.salle[:10])
+            c.drawString(cols[4], y, f"{s.duree}mn")
+            c.drawString(cols[5], y, jury[:12])
+            y -= 15
+            c.line(45, y + 2, w - 45, y + 2)
+            y -= 3
+
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.5, 0.5, 0.5)
+        c.drawCentredString(w / 2, 40, f"Généré le {__import__('datetime').date.today().strftime('%d/%m/%Y')} — ISCAE Mauritanie")
+        c.save()
+        buf.seek(0)
+        return buf
+    except ImportError:
+        from rest_framework.exceptions import ValidationError
+        raise ValidationError("reportlab n'est pas installé.")
+
+
 def _get_mention(note):
     if note >= 16: return "Très bien"
     if note >= 14: return "Bien"

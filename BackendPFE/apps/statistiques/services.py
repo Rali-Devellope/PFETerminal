@@ -22,6 +22,26 @@ def calculer_stats_globales():
     }
 
 
+def calculer_stats_toutes_filieres():
+    from django.db.models import Count, Avg
+    filieres = PFE.objects.values('filiere').annotate(
+        total=Count('id'),
+        en_cours=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(statut='EN_COURS')),
+        archives=Count('id', filter=__import__('django.db.models', fromlist=['Q']).Q(statut='ARCHIVE')),
+    ).order_by('-total')
+    result = []
+    for f in filieres:
+        avg = Soutenance.objects.filter(pfe__filiere=f['filiere'], note_finale__isnull=False).aggregate(avg=Avg('note_finale'))['avg']
+        result.append({
+            'filiere': f['filiere'],
+            'total': f['total'],
+            'en_cours': f['en_cours'],
+            'archives': f['archives'],
+            'moyenne': round(avg or 0, 2),
+        })
+    return result
+
+
 def calculer_stats_filiere(filiere):
     pfe_qs = PFE.objects.filter(filiere=filiere)
     avg = Soutenance.objects.filter(

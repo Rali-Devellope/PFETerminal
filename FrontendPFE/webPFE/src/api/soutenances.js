@@ -11,3 +11,4 @@ export const calculerNoteFinale = (id) => api.post(`/soutenances/${id}/calculer-
 export const telechargerPV = (id) => api.get(`/soutenances/${id}/pv_pdf/`, { responseType: 'blob' })
 export const telechargerReleve = (id) => api.get(`/soutenances/${id}/releve_pdf/`, { responseType: 'blob' })
 export const telechargerAttestation = (id) => api.get(`/soutenances/${id}/attestation_pdf/`, { responseType: 'blob' })
+export const telechargerPlanning = () => api.get('/soutenances/planning_pdf/', { responseType: 'blob' })

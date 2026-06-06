@@ -14,7 +14,7 @@ from .filters import SoutenanceFilter
 from .services import (
     planifier_soutenance, affecter_jury,
     soumettre_note, calculer_note_finale,
-    generer_pv_pdf, generer_releve_notes, generer_attestation,
+    generer_pv_pdf, generer_releve_notes, generer_attestation, generer_planning_pdf,
 )
 
 
@@ -106,4 +106,12 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         buf = generer_attestation(self.get_object())
         response = HttpResponse(buf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="attestation_{pk}.pdf"'
+        return response
+
+    @action(detail=False, methods=['get'])
+    def planning_pdf(self, request):
+        qs = self.get_queryset().prefetch_related('membres_jury', 'pfe__etudiant').order_by('date')
+        buf = generer_planning_pdf(qs)
+        response = HttpResponse(buf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="planning_soutenances.pdf"'
         return response

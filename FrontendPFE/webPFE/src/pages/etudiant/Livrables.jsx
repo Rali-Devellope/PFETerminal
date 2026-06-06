@@ -260,6 +260,24 @@ export default function EtudiantLivrables() {
                     )}
                   </div>
                 </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {l.statut === 'REFUSE' && (
+                    <button
+                      onClick={() => {
+                        setForm({ ...form, type_livrable: l.type_livrable ?? l.type })
+                        setSuccessMsg('')
+                        setErrorMsg('')
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                      style={{ backgroundColor: '#fff7ed', color: '#c2410c' }}>
+                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 .49-3.8"/>
+                      </svg>
+                      Redéposer
+                    </button>
+                  )}
                 {l.fichier && (
                   <a href={l.fichier} target="_blank" rel="noreferrer"
                      className="ml-3 flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex-shrink-0"
@@ -272,6 +290,7 @@ export default function EtudiantLivrables() {
                     {t('livrables.dl')}
                   </a>
                 )}
+                </div>
               </div>
             ))}
           </div>

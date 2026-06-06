@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card, { StatCard } from '../../components/UI/Card'
-import { getStatsGlobales, getClassement, exportCSV, exportExcel, exportPDF } from '../../api/stats'
+import { getStatsGlobales, getStatsFilieres, getClassement, exportCSV, exportExcel, exportPDF } from '../../api/stats'
 import { useAuthStore } from '../../store/authStore'
 import { ROLE_DASHBOARDS } from '../../components/ProtectedRoute'
 
@@ -58,12 +58,17 @@ export default function Stats() {
   ]
 
   const { data: statsRes } = useQuery({ queryKey: ['stats-globales'], queryFn: getStatsGlobales })
+  const { data: filieresRes } = useQuery({ queryKey: ['stats-filieres'], queryFn: getStatsFilieres })
   const { data: classRes, isLoading: classLoading } = useQuery({
     queryKey: ['classement', filiere, annee],
     queryFn: () => getClassement({ filiere: filiere || undefined, annee: annee || undefined }),
   })
 
   const s = statsRes?.data?.data ?? {}
+  const filieresArr = (() => {
+    const raw = filieresRes?.data?.data ?? []
+    return Array.isArray(raw) ? raw : []
+  })()
   const classArr = (() => {
     const raw = classRes?.data?.data ?? classRes?.data ?? []
     return Array.isArray(raw) ? raw : []
@@ -103,6 +108,40 @@ export default function Stats() {
         <StatCard label="Moyenne générale" value={s.moyenne_notes ? `${s.moyenne_notes}/20` : '—'} color="#f59e0b"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>} />
       </div>
+
+      {/* Graphique par filière */}
+      {filieresArr.length > 0 && (
+        <Card title="Répartition par filière" className="mb-5"
+          icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>}>
+          <div className="space-y-3 py-2">
+            {filieresArr.map((f, i) => {
+              const maxTotal = Math.max(...filieresArr.map((x) => x.total), 1)
+              const pct = Math.round((f.total / maxTotal) * 100)
+              const colors = ['#2db84b', '#0ea5e9', '#7e22ce', '#f59e0b', '#ef4444', '#ec4899']
+              const color = colors[i % colors.length]
+              return (
+                <div key={f.filiere}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-semibold" style={{ color: '#1a2744' }}>{f.filiere}</span>
+                    <div className="flex gap-3 text-gray-400">
+                      <span>{f.total} PFE</span>
+                      {f.moyenne > 0 && <span className="font-medium" style={{ color }}>moy. {f.moyenne}/20</span>}
+                    </div>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-2.5 rounded-full transition-all duration-700"
+                         style={{ width: `${pct}%`, backgroundColor: color }} />
+                  </div>
+                  <div className="flex gap-4 mt-1">
+                    <span className="text-[10px] text-gray-400">En cours : {f.en_cours}</span>
+                    <span className="text-[10px] text-gray-400">Archivés : {f.archives}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3 mb-5">
         {/* Répartition PFE */}

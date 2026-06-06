@@ -7,6 +7,7 @@ from .services import (
     calculer_stats_encadrant,
     calculer_stats_filiere,
     calculer_stats_globales,
+    calculer_stats_toutes_filieres,
     classement_etudiants,
     export_csv,
     export_excel,
@@ -18,6 +19,12 @@ from .services import (
 @permission_classes([IsAuthenticated])
 def stats_globales(request):
     return Response({'success': True, 'data': calculer_stats_globales()})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def stats_filieres(request):
+    return Response({'success': True, 'data': calculer_stats_toutes_filieres()})
 
 
 @api_view(['GET'])
