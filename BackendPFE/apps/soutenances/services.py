@@ -21,15 +21,39 @@ def planifier_soutenance(pfe_id, date, salle, duree, coordinateur):
     if date <= timezone.now():
         raise ValidationError("La date de soutenance doit être dans le futur.")
 
+    # Vérification des conditions pour soutenir
+    rapport_valide = pfe.livrables.filter(type='rapport', statut='VALIDE').exists()
+    if not rapport_valide:
+        raise ValidationError(
+            "Condition non remplie : le rapport doit être déposé et validé avant de planifier une soutenance."
+        )
+
+    SEUIL_PLAGIAT = 30.0
+    if pfe.score_plagiat > SEUIL_PLAGIAT:
+        raise ValidationError(
+            f"Condition non remplie : le score de plagiat ({pfe.score_plagiat}%) dépasse le seuil autorisé ({SEUIL_PLAGIAT}%)."
+        )
+
     soutenance = Soutenance.objects.create(
         pfe=pfe,
         date=date,
         salle=salle,
         duree=duree,
-        statut='PLANIFIEE',
+        statut='EN_ATTENTE_AUTORISATION',
     )
+    return soutenance
+
+
+def autoriser_soutenance(soutenance):
+    if soutenance.statut != 'EN_ATTENTE_AUTORISATION':
+        raise ValidationError("Cette soutenance est déjà autorisée ou dans un autre état.")
+    if soutenance.membres_jury.count() < 2:
+        raise ValidationError("Impossible d'autoriser : le jury doit être affecté (minimum 2 membres).")
+    soutenance.statut = 'PLANIFIEE'
+    soutenance.save(update_fields=['statut', 'updated_at'])
     from apps.notifications.services import notifier_soutenance_planifiee
     notifier_soutenance_planifiee(soutenance)
+    generer_convocation_pdf(soutenance)
     return soutenance
 
 
@@ -85,6 +109,10 @@ def calculer_note_finale(soutenance):
         type='finale',
         defaults={'valeur': finale, 'commentaire': 'Calculée automatiquement'},
     )
+
+    from apps.notifications.services import notifier_note_finale
+    notifier_note_finale(soutenance)
+
     return soutenance
 
 
@@ -155,6 +183,145 @@ def _get_mention(note):
     if note >= 12: return "Assez bien"
     if note >= 10: return "Passable"
     return "Insuffisant"
+
+
+def _get_mention_code(note):
+    if note >= 16: return "tres_bien"
+    if note >= 14: return "bien"
+    if note >= 12: return "assez_bien"
+    if note >= 10: return "passable"
+    return "ajourne"
+
+
+def generer_convocation_pdf(soutenance):
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        import io
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4)
+        w, h = A4
+        pfe = soutenance.pfe
+        etudiant = pfe.etudiant
+
+        # En-tête
+        c.setFillColorRGB(0.118, 0.227, 0.373)
+        c.rect(0, h - 80, w, 80, fill=1, stroke=0)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(w / 2, h - 35, "CONVOCATION À LA SOUTENANCE DE PFE")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(w / 2, h - 55, "ISCAE Mauritanie — Institut Supérieur de Comptabilité et d'Administration des Entreprises")
+
+        c.setFillColorRGB(0, 0, 0)
+        y = h - 110
+
+        c.setFont("Helvetica", 11)
+        c.drawString(60, y, f"Monsieur / Madame  {etudiant.prenom} {etudiant.nom.upper()}  est convoqué(e) à la soutenance")
+        y -= 18
+        c.drawString(60, y, "de son Projet de Fin d'Études dans les conditions suivantes :")
+        y -= 35
+
+        infos = [
+            ("Titre du PFE",        pfe.titre),
+            ("Filière",             pfe.filiere),
+            ("Date",                soutenance.date.strftime('%A %d %B %Y')),
+            ("Heure",               soutenance.date.strftime('%H:%M')),
+            ("Salle",               soutenance.salle),
+            ("Durée",               f"{soutenance.duree} minutes"),
+            ("Encadrant",           f"{pfe.encadrant_acad.prenom} {pfe.encadrant_acad.nom}" if pfe.encadrant_acad else "—"),
+        ]
+        for label, value in infos:
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(70, y, f"{label} :")
+            c.setFont("Helvetica", 10)
+            val = value if len(str(value)) <= 65 else str(value)[:62] + "..."
+            c.drawString(210, y, val)
+            y -= 20
+
+        y -= 15
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(60, y, "Composition du jury :")
+        y -= 20
+        c.setFont("Helvetica", 10)
+        for membre in soutenance.membres_jury.all():
+            c.drawString(80, y, f"•  {membre.prenom} {membre.nom}")
+            y -= 18
+
+        y -= 30
+        c.setFont("Helvetica", 9)
+        c.setFillColorRGB(0.4, 0.4, 0.4)
+        c.drawString(60, y, "Veuillez vous présenter 15 minutes avant l'heure prévue avec une pièce d'identité.")
+        y -= 50
+
+        c.setFillColorRGB(0, 0, 0)
+        c.setFont("Helvetica", 10)
+        c.drawString(w - 220, y, "Le Coordinateur PFE")
+        y -= 55
+        c.line(w - 220, y, w - 80, y)
+        y -= 15
+        c.setFont("Helvetica", 9)
+        c.drawString(w - 220, y, "Signature et cachet")
+
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.5, 0.5, 0.5)
+        import datetime
+        c.drawCentredString(w / 2, 40, f"Document généré le {datetime.date.today().strftime('%d/%m/%Y')} — ISCAE Mauritanie")
+
+        c.save()
+        buf.seek(0)
+        return buf
+    except ImportError:
+        raise ValidationError("reportlab n'est pas installé.")
+
+
+def cloturer_session(annee_academique_id):
+    from apps.pfe.models import AnneeAcademique
+
+    try:
+        annee = AnneeAcademique.objects.get(pk=annee_academique_id)
+    except AnneeAcademique.DoesNotExist:
+        raise ValidationError("Année académique introuvable.")
+
+    soutenances_terminees = Soutenance.objects.filter(
+        annee_academique=annee, statut='TERMINEE'
+    ).select_related('pfe')
+
+    soutenances_en_attente = Soutenance.objects.filter(
+        annee_academique=annee
+    ).exclude(statut='TERMINEE').count()
+
+    if soutenances_en_attente > 0:
+        raise ValidationError(
+            f"{soutenances_en_attente} soutenance(s) ne sont pas encore terminées dans cette année."
+        )
+
+    resultats = []
+    for soutenance in soutenances_terminees:
+        pfe = soutenance.pfe
+        if soutenance.note_finale is None:
+            continue
+        mention_code = _get_mention_code(soutenance.note_finale)
+        nouveau_statut = 'VALIDE' if soutenance.note_finale >= 10 else 'REFUSE'
+        pfe.mention = mention_code
+        pfe.statut = nouveau_statut
+        pfe.save(update_fields=['mention', 'statut', 'updated_at'])
+
+        from apps.notifications.services import notifier_resultats_publies
+        notifier_resultats_publies(soutenance, mention_code)
+        resultats.append({
+            'pfe_id': pfe.pk,
+            'etudiant': pfe.etudiant.full_name,
+            'note_finale': soutenance.note_finale,
+            'mention': _get_mention(soutenance.note_finale),
+            'statut': nouveau_statut,
+        })
+
+    annee.active = False
+    annee.save(update_fields=['active'])
+
+    return resultats
 
 
 def generer_pv_pdf(soutenance):

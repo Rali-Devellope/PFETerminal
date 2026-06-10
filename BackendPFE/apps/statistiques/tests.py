@@ -5,7 +5,7 @@ from rest_framework import status
 
 from apps.authentication.models import CustomUser
 from apps.sujets.models import Sujet
-from apps.pfe.models import PFE
+from apps.pfe.models import PFE, Livrable, AnneeAcademique
 from apps.soutenances.models import Soutenance
 
 NO_THROTTLE = override_settings(
@@ -125,4 +125,104 @@ class StatsGlobalesTests(TestCase):
     def test_unauthenticated_blocked(self):
         r = self.client.get(reverse('stats-globales'))
         self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+# ─── B3 — Dashboard coordinateur ──────────────────────────────────────────────
+
+@NO_THROTTLE
+class DashboardCoordinateurTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.coordinateur = make_user('coord@iscae.mr', 'coordinateur')
+        self.etudiant     = make_user('e@iscae.mr',     'etudiant')
+        self.encadrant    = make_user('enc@iscae.mr',   'encadrant_acad')
+
+    def _auth(self, email='coord@iscae.mr'):
+        token = get_token(self.client, email)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_dashboard_structure(self):
+        self._auth()
+        r = self.client.get(reverse('stats-dashboard-coordinateur'))
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        data = r.data['data']
+        for key in ('sujets_en_attente', 'pfe_sans_encadrant', 'livrables_en_attente',
+                    'soutenances_en_attente_autorisation', 'pct_rapport_valide',
+                    'etudiants_sans_soutenance', 'alertes_deadlines'):
+            self.assertIn(key, data)
+
+    def test_dashboard_compte_sujets_en_attente(self):
+        from apps.sujets.models import Sujet
+        Sujet.objects.create(
+            titre='S1', description='D', origine='academique',
+            filiere='Finance', annee=2025, statut='PROPOSE',
+            propose_par=self.etudiant,
+        )
+        self._auth()
+        r = self.client.get(reverse('stats-dashboard-coordinateur'))
+        self.assertEqual(r.data['data']['sujets_en_attente'], 1)
+
+    def test_dashboard_avec_annee_id(self):
+        annee = AnneeAcademique.objects.create(
+            libelle='2024-2025', date_debut='2024-09-01', date_fin='2025-07-31', active=True
+        )
+        self._auth()
+        r = self.client.get(
+            reverse('stats-dashboard-coordinateur') + f'?annee_id={annee.pk}'
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(r.data['data']['alertes_deadlines'], list)
+
+
+# ─── B4 — Dashboard encadrant ─────────────────────────────────────────────────
+
+@NO_THROTTLE
+class DashboardEncadrantTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.coordinateur = make_user('coord@iscae.mr', 'coordinateur')
+        self.etudiant     = make_user('e@iscae.mr',     'etudiant')
+        self.encadrant    = make_user('enc@iscae.mr',   'encadrant_acad')
+
+    def _auth(self, email='enc@iscae.mr'):
+        token = get_token(self.client, email)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_dashboard_encadrant_structure(self):
+        self._auth()
+        r = self.client.get(
+            reverse('stats-dashboard-encadrant', args=[self.encadrant.pk])
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        data = r.data['data']
+        self.assertIn('encadrant', data)
+        self.assertIn('total_etudiants_en_cours', data)
+        self.assertIn('livrables_en_attente', data)
+        self.assertIn('etudiants', data)
+
+    def test_dashboard_encadrant_avec_etudiants(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        pfe, _ = make_pfe_avec_soutenance(self.etudiant, self.encadrant)
+        pfe.statut = 'EN_COURS'
+        pfe.save()
+        Livrable.objects.create(
+            pfe=pfe, type='rapport',
+            fichier=SimpleUploadedFile('r.pdf', b'%PDF-1.4', content_type='application/pdf'),
+            statut='EN_ATTENTE',
+        )
+        self._auth()
+        r = self.client.get(
+            reverse('stats-dashboard-encadrant', args=[self.encadrant.pk])
+        )
+        data = r.data['data']
+        self.assertEqual(data['total_etudiants_en_cours'], 1)
+        self.assertEqual(data['livrables_en_attente'], 1)
+        self.assertEqual(len(data['etudiants']), 1)
+
+    def test_encadrant_invalide_echoue(self):
+        self._auth()
+        r = self.client.get(
+            reverse('stats-dashboard-encadrant', args=[9999])
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 

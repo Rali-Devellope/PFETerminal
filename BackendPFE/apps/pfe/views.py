@@ -1,17 +1,24 @@
 from django.db.models import Q
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from core.permissions import IsCoordinateur, IsEncadrant
 from core.exceptions import success_response
-from .models import PFE, Livrable
+from django.http import FileResponse
+from .models import PFE, Livrable, AnneeAcademique, Deadline
 from .serializers import (
     PFESerializer, LivrableSerializer,
     LivrableUploadSerializer, LivrableNestedUploadSerializer, LivrableActionSerializer,
+    AnneeAcademiqueSerializer, AnneeAcademiqueCreateSerializer,
+    DeadlineSerializer, DeadlineCreateSerializer, FicheInscriptionSerializer,
 )
 from .filters import PFEFilter, LivrableFilter
-from .services import upload_livrable, valider_livrable, refuser_livrable, archiver_pfe
+from .services import (
+    upload_livrable, valider_livrable, refuser_livrable, archiver_pfe,
+    get_annee_active, creer_annee, ouvrir_annee, fermer_annee_active, definir_deadline,
+    generer_fiche_inscription, signer_fiche,
+)
 
 
 class PFEViewSet(viewsets.ReadOnlyModelViewSet):
@@ -32,7 +39,7 @@ class PFEViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
     def get_permissions(self):
-        if self.action == 'archiver':
+        if self.action in ('archiver', 'generer_fiche'):
             return [IsCoordinateur()]
         return [IsAuthenticated()]
 
@@ -65,6 +72,114 @@ class PFEViewSet(viewsets.ReadOnlyModelViewSet):
     def archiver(self, request, pk=None):
         pfe = archiver_pfe(self.get_object(), request.user)
         return success_response(data=PFESerializer(pfe).data)
+
+    @action(detail=True, methods=['post'], url_path='generer-fiche')
+    def generer_fiche(self, request, pk=None):
+        fiche = generer_fiche_inscription(self.get_object())
+        return success_response(data=FicheInscriptionSerializer(fiche).data, status_code=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], url_path='fiche-pdf')
+    def fiche_pdf(self, request, pk=None):
+        from django.conf import settings
+        pfe = self.get_object()
+        if not hasattr(pfe, 'fiche_inscription') or not pfe.fiche_inscription.chemin_pdf:
+            return success_response(message="Fiche non encore générée.", status_code=status.HTTP_404_NOT_FOUND)
+        import os
+        filepath = os.path.join(settings.MEDIA_ROOT, pfe.fiche_inscription.chemin_pdf)
+        if not os.path.exists(filepath):
+            return success_response(message="Fichier PDF introuvable.", status_code=status.HTTP_404_NOT_FOUND)
+        return FileResponse(open(filepath, 'rb'), content_type='application/pdf',
+                            as_attachment=True, filename=f"fiche_pfe_{pfe.pk}.pdf")
+
+    @action(detail=True, methods=['post'], url_path='signer-fiche')
+    def signer_fiche_action(self, request, pk=None):
+        pfe = self.get_object()
+        if not hasattr(pfe, 'fiche_inscription'):
+            return success_response(message="Fiche non encore générée.", status_code=status.HTTP_404_NOT_FOUND)
+        fiche = signer_fiche(pfe.fiche_inscription, request.user)
+        return success_response(data=FicheInscriptionSerializer(fiche).data)
+
+
+class AnneeAcademiqueViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = AnneeAcademiqueSerializer
+    queryset         = AnneeAcademique.objects.all()
+
+    def get_permissions(self):
+        if self.action in ('creer', 'ouvrir', 'fermer'):
+            return [IsCoordinateur()]
+        return [IsAuthenticated()]
+
+    @action(detail=False, methods=['post'])
+    def creer(self, request):
+        ser = AnneeAcademiqueCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        annee = creer_annee(
+            libelle=ser.validated_data['libelle'],
+            date_debut=ser.validated_data['date_debut'],
+            date_fin=ser.validated_data['date_fin'],
+            coordinateur=request.user,
+        )
+        return success_response(data=AnneeAcademiqueSerializer(annee).data, status_code=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def ouvrir(self, request, pk=None):
+        annee = ouvrir_annee(pk, request.user)
+        return success_response(data=AnneeAcademiqueSerializer(annee).data, message=f"Année {annee.libelle} ouverte.")
+
+    @action(detail=False, methods=['post'])
+    def fermer(self, request):
+        fermer_annee_active(request.user)
+        return success_response(message="Année active fermée.")
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        annee = get_annee_active()
+        return success_response(data=AnneeAcademiqueSerializer(annee).data if annee else None)
+
+    @action(detail=True, methods=['get'])
+    def deadlines(self, request, pk=None):
+        annee = self.get_object()
+        qs = Deadline.objects.filter(annee_academique=annee)
+        return success_response(data=DeadlineSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=['post'], url_path='definir-deadline')
+    def definir_deadline(self, request):
+        ser = DeadlineCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        deadline = definir_deadline(
+            annee_id=ser.validated_data['annee_id'],
+            type_livrable=ser.validated_data['type_livrable'],
+            date_limite=ser.validated_data['date_limite'],
+            coordinateur=request.user,
+        )
+        return success_response(data=DeadlineSerializer(deadline).data)
+
+
+class BibliothequeViewSet(viewsets.ReadOnlyModelViewSet):
+    """PFE archivés — accessibles à tous les rôles authentifiés."""
+    serializer_class = PFESerializer
+    permission_classes = [IsAuthenticated]
+    search_fields   = ['titre', 'filiere', 'etudiant__nom', 'etudiant__prenom']
+    ordering_fields = ['annee', 'filiere']
+    ordering        = ['-annee']
+
+    def get_queryset(self):
+        qs = PFE.objects.filter(statut='ARCHIVE').select_related(
+            'sujet', 'etudiant', 'encadrant_acad', 'encadrant_entr', 'annee_academique'
+        ).prefetch_related('livrables')
+        filiere  = self.request.query_params.get('filiere')
+        annee    = self.request.query_params.get('annee')
+        encadrant = self.request.query_params.get('encadrant_id')
+        mention  = self.request.query_params.get('mention')
+        if filiere:
+            qs = qs.filter(filiere__icontains=filiere)
+        if annee:
+            qs = qs.filter(annee=annee)
+        if encadrant:
+            qs = qs.filter(encadrant_acad_id=encadrant)
+        if mention:
+            qs = qs.filter(mention=mention)
+        return qs
 
 
 class LivrableViewSet(viewsets.ModelViewSet):

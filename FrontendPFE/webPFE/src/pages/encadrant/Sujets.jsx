@@ -9,7 +9,7 @@ import { getEtudiants } from '../../api/auth'
 
 const INIT_FORM = {
   titre: '', description: '', origine: 'academique',
-  filiere: '', annee: new Date().getFullYear(), etudiant_cible: '',
+  filiere: '', annee: new Date().getFullYear(), etudiant_cible: '', confidentiel: false,
 }
 
 export default function EncadrantSujets() {
@@ -162,7 +162,15 @@ export default function EncadrantSujets() {
                 onFocus={onFocus} onBlur={onBlur} />
             )}
 
-            <div className="sm:col-span-2 flex justify-end">
+            <div className="sm:col-span-2 flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.confidentiel}
+                  onChange={(e) => setForm({ ...form, confidentiel: e.target.checked })}
+                  className="w-4 h-4 rounded accent-orange-500" />
+                <span className="text-xs font-semibold" style={{ color: '#c2410c' }}>
+                  🔒 Sujet confidentiel (entreprise)
+                </span>
+              </label>
               <button type="submit" disabled={proposerMut.isPending}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style={{ backgroundColor: '#2db84b', opacity: proposerMut.isPending ? 0.7 : 1 }}>

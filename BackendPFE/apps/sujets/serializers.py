@@ -14,7 +14,7 @@ class SujetSerializer(serializers.ModelSerializer):
         model  = Sujet
         fields = [
             'id', 'titre', 'description', 'origine', 'statut',
-            'filiere', 'annee', 'motif_refus',
+            'filiere', 'annee', 'motif_refus', 'confidentiel',
             'propose_par', 'etudiant_cible', 'etudiant',
             'encadrant', 'created_at', 'updated_at',
         ]
@@ -35,7 +35,7 @@ class SujetCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Sujet
-        fields = ['titre', 'description', 'origine', 'filiere', 'annee', 'etudiant_cible']
+        fields = ['titre', 'description', 'origine', 'filiere', 'annee', 'etudiant_cible', 'confidentiel']
 
     def validate_annee(self, value):
         if value < 2000 or value > 2100:

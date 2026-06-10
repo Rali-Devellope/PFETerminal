@@ -26,6 +26,12 @@ class Sujet(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='sujets_proposes'
     )
+    confidentiel     = models.BooleanField(default=False)
+    annee_academique = models.ForeignKey(
+        'pfe.AnneeAcademique', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='sujets'
+    )
+
     etudiant_cible = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sujets_cibles',

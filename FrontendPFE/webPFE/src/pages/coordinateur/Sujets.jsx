@@ -223,7 +223,15 @@ export default function CoordinateurSujets() {
                     <span className="text-sm font-semibold" style={{ color: '#1a2744' }}>{s.titre}</span>
                     <Badge statut={s.statut} />
                   </div>
-                  <p className="text-xs text-gray-400">{s.filiere} · {s.annee}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-400">{s.filiere} · {s.annee}</p>
+                    {s.confidentiel && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#fff7ed', color: '#c2410c' }}>
+                        🔒 Confidentiel
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {t('coordinateur.proposed_by', { name: `${s.propose_par?.prenom ?? ''} ${s.propose_par?.nom ?? ''}` })}
                   </p>

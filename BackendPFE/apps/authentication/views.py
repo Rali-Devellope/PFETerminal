@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from core.permissions import IsAdmin, IsAdminOrCoordinateur, IsEncadrant
+from core.permissions import IsAdmin, IsAdminOrCoordinateur, IsEncadrant, IsScolarite
 from core.throttling import LoginRateThrottle
 from core.exceptions import success_response, error_response
 from .models import CustomUser
@@ -17,11 +17,15 @@ from .services import create_user_by_admin, reset_password
 
 
 class AdminCreateUserView(generics.CreateAPIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdmin | IsScolarite]
     serializer_class = CreateUserSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy()
+        # La scolarité peut uniquement créer des étudiants
+        if request.user.role == 'scolarite':
+            data['role'] = 'etudiant'
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = create_user_by_admin(**serializer.validated_data)
         return success_response(

@@ -107,6 +107,64 @@ def notifier_livrable_valide(livrable):
     )
 
 
+def notifier_livrable_refuse(livrable):
+    notifier(
+        livrable.pfe.etudiant,
+        "Livrable refusé",
+        f"Votre livrable ({livrable.type}) pour « {livrable.pfe.titre} » a été refusé."
+        + (f" Motif : {livrable.remarques}" if livrable.remarques else ""),
+        'livrable_refuse',
+    )
+
+
+def notifier_note_finale(soutenance):
+    note = soutenance.note_finale
+    mention = (
+        "Très bien"  if note >= 16 else
+        "Bien"       if note >= 14 else
+        "Assez bien" if note >= 12 else
+        "Passable"   if note >= 10 else
+        "Insuffisant"
+    )
+    pfe = soutenance.pfe
+    corps = (
+        f"La note finale du PFE « {pfe.titre} » "
+        f"de {pfe.etudiant.prenom} {pfe.etudiant.nom} "
+        f"est de {note}/20 — {mention}."
+    )
+
+    # Étudiant
+    notifier(pfe.etudiant, "Note finale publiée", corps, 'note_publiee')
+
+    # Encadrant
+    if pfe.encadrant_acad:
+        notifier(pfe.encadrant_acad, "Note finale publiée", corps, 'note_publiee', envoyer_mail=False)
+    if pfe.encadrant_entr:
+        notifier(pfe.encadrant_entr, "Note finale publiée", corps, 'note_publiee', envoyer_mail=False)
+
+    # Scolarité (tous les utilisateurs avec rôle scolarite)
+    from apps.authentication.models import CustomUser
+    for scol in CustomUser.objects.filter(role='scolarite', is_active=True):
+        notifier(scol, "Note finale publiée", corps, 'note_publiee', envoyer_mail=False)
+
+
+def notifier_resultats_publies(soutenance, mention_code):
+    from apps.soutenances.services import _get_mention
+    mention = _get_mention(soutenance.note_finale)
+    pfe = soutenance.pfe
+    if soutenance.note_finale >= 10:
+        corps = (
+            f"Félicitations ! Votre PFE « {pfe.titre} » est validé avec la note "
+            f"{soutenance.note_finale}/20 — Mention : {mention}."
+        )
+    else:
+        corps = (
+            f"Votre PFE « {pfe.titre} » n'a pas été validé (note : {soutenance.note_finale}/20). "
+            f"Veuillez contacter le coordinateur pour la suite."
+        )
+    notifier(pfe.etudiant, "Résultats officiels publiés", corps, 'note_publiee')
+
+
 def notifier_soutenance_planifiee(soutenance):
     pfe = soutenance.pfe
     destinataires = [pfe.etudiant] + list(soutenance.membres_jury.all())

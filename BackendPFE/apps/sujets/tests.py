@@ -140,3 +140,42 @@ class SujetValidationTests(TestCase):
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 
+
+# ─── A5 — Limite de charge par encadrant ──────────────────────────────────────
+
+@NO_THROTTLE
+class LimiteEncadrantTests(TestCase):
+    def setUp(self):
+        self.coordinateur = make_user('coord@iscae.mr', 'coordinateur')
+        self.etudiant1    = make_user('etud1@iscae.mr', 'etudiant')
+        self.etudiant2    = make_user('etud2@iscae.mr', 'etudiant')
+        self.encadrant    = make_user('enc@iscae.mr',   'encadrant_acad')
+        self.encadrant.max_etudiants = 1
+        self.encadrant.save()
+        self.client_coord = auth_client(self.coordinateur)
+
+    def test_affectation_dans_limite(self):
+        sujet = make_sujet(self.etudiant1, statut='VALIDE')
+        r = self.client_coord.post(
+            f'/api/v1/sujets/{sujet.pk}/affecter/',
+            {'encadrant_id': self.encadrant.pk}, format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+
+    def test_affectation_hors_limite_echoue(self):
+        from apps.pfe.models import PFE
+        sujet1 = make_sujet(self.etudiant1, statut='VALIDE', encadrant=self.encadrant)
+        sujet1.statut = 'VALIDE'
+        sujet1.save()
+        pfe = PFE.objects.get(sujet=sujet1)
+        pfe.encadrant_acad = self.encadrant
+        pfe.statut = 'EN_COURS'
+        pfe.save()
+
+        sujet2 = make_sujet(self.etudiant2, statut='VALIDE')
+        r = self.client_coord.post(
+            f'/api/v1/sujets/{sujet2.pk}/affecter/',
+            {'encadrant_id': self.encadrant.pk}, format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+

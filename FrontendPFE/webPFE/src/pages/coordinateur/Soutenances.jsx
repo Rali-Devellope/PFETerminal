@@ -113,11 +113,18 @@ export default function CoordinateurSoutenances() {
               <select value={form.pfe} onChange={(e) => setForm({ ...form, pfe: e.target.value })}
                 className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none" style={{ borderColor: '#e5e7eb' }}>
                 <option value="">{t('coordinateur.select_pfe')}</option>
-                {pfesArr.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.etudiant?.prenom} {p.etudiant?.nom} — {p.sujet?.titre?.slice(0, 30)}
-                  </option>
-                ))}
+                {pfesArr.map((p) => {
+                  const rapportOk = p.livrables?.some((l) => l.type_livrable === 'rapport' && l.statut === 'VALIDE')
+                  const plagiatOk = (p.score_plagiat ?? 0) <= 30
+                  const pret = rapportOk && plagiatOk
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {pret ? '✅' : '⚠️'} {p.etudiant?.prenom} {p.etudiant?.nom} — {p.sujet?.titre?.slice(0, 25)}
+                      {!rapportOk ? ' (rapport manquant)' : ''}
+                      {!plagiatOk ? ` (plagiat ${p.score_plagiat}%)` : ''}
+                    </option>
+                  )
+                })}
               </select>
             </div>
             <div>

@@ -5,17 +5,22 @@ from apps.pfe.models import PFE
 
 class Soutenance(models.Model):
     STATUTS = [
+        ('EN_ATTENTE_AUTORISATION', 'En attente d\'autorisation'),
         ('PLANIFIEE', 'Planifiée'),
         ('EN_COURS',  'En cours'),
         ('TERMINEE',  'Terminée'),
         ('REPORTEE',  'Reportée'),
     ]
-    pfe          = models.OneToOneField(PFE, on_delete=models.CASCADE, related_name='soutenance')
-    date         = models.DateTimeField()
-    salle        = models.CharField(max_length=50)
-    duree        = models.PositiveIntegerField(help_text='durée en minutes')
-    statut       = models.CharField(max_length=10, choices=STATUTS, default='PLANIFIEE')
-    note_finale  = models.FloatField(null=True, blank=True)
+    pfe              = models.OneToOneField(PFE, on_delete=models.CASCADE, related_name='soutenance')
+    date             = models.DateTimeField()
+    salle            = models.CharField(max_length=50)
+    duree            = models.PositiveIntegerField(help_text='durée en minutes')
+    statut           = models.CharField(max_length=30, choices=STATUTS, default='PLANIFIEE')
+    note_finale      = models.FloatField(null=True, blank=True)
+    annee_academique = models.ForeignKey(
+        'pfe.AnneeAcademique', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='soutenances'
+    )
     membres_jury = models.ManyToManyField(
         CustomUser, related_name='jurys', limit_choices_to={'role': 'jury'}, blank=True
     )

@@ -131,6 +131,100 @@ def export_excel(filiere=None, annee=None):
     return buf
 
 
+def dashboard_coordinateur(annee_id=None):
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.db.models import Q
+    from apps.pfe.models import PFE, Livrable, Deadline
+    from apps.sujets.models import Sujet
+    from apps.soutenances.models import Soutenance
+
+    pfe_qs       = PFE.objects.all()
+    sujets_qs    = Sujet.objects.all()
+    soutenance_qs = Soutenance.objects.all()
+
+    if annee_id:
+        pfe_qs       = pfe_qs.filter(annee_academique_id=annee_id)
+        sujets_qs    = sujets_qs.filter(annee_academique_id=annee_id)
+        soutenance_qs = soutenance_qs.filter(annee_academique_id=annee_id)
+
+    en_cours = pfe_qs.filter(statut='EN_COURS').count()
+    avec_rapport = pfe_qs.filter(
+        livrables__type='rapport', livrables__statut='VALIDE'
+    ).distinct().count()
+
+    alertes = []
+    if annee_id:
+        now = timezone.now()
+        for d in Deadline.objects.filter(
+            annee_academique_id=annee_id,
+            date_limite__gt=now,
+            date_limite__lte=now + timedelta(days=7),
+        ):
+            alertes.append({
+                'type_livrable': d.type_livrable,
+                'date_limite': d.date_limite.isoformat(),
+                'jours_restants': (d.date_limite - now).days,
+            })
+
+    return {
+        'sujets_en_attente': sujets_qs.filter(statut='PROPOSE').count(),
+        'pfe_sans_encadrant': pfe_qs.filter(encadrant_acad__isnull=True, statut='EN_COURS').count(),
+        'livrables_en_attente': Livrable.objects.filter(pfe__in=pfe_qs, statut='EN_ATTENTE').count(),
+        'soutenances_en_attente_autorisation': soutenance_qs.filter(statut='EN_ATTENTE_AUTORISATION').count(),
+        'pfe_en_cours': en_cours,
+        'pct_rapport_valide': round(avec_rapport / en_cours * 100, 1) if en_cours else 0,
+        'etudiants_sans_soutenance': pfe_qs.filter(statut='EN_COURS').filter(soutenance__isnull=True).count(),
+        'alertes_deadlines': alertes,
+    }
+
+
+def dashboard_encadrant(encadrant_id):
+    from apps.authentication.models import CustomUser
+    from rest_framework.exceptions import ValidationError
+    from apps.pfe.models import PFE
+
+    try:
+        encadrant = CustomUser.objects.get(pk=encadrant_id)
+    except CustomUser.DoesNotExist:
+        raise ValidationError("Encadrant introuvable.")
+
+    pfe_list = PFE.objects.filter(
+        encadrant_acad=encadrant, statut='EN_COURS'
+    ).select_related('etudiant').prefetch_related('livrables')
+
+    etudiants = []
+    livrables_en_attente = 0
+
+    for pfe in pfe_list:
+        livs = {}
+        for typ in ('rapport', 'code', 'presentation'):
+            lv = pfe.livrables.filter(type=typ).order_by('-date_depot').first()
+            livs[typ] = lv.statut if lv else None
+            if lv and lv.statut == 'EN_ATTENTE':
+                livrables_en_attente += 1
+
+        sout = None
+        if hasattr(pfe, 'soutenance'):
+            s = pfe.soutenance
+            sout = {'statut': s.statut, 'date': s.date.isoformat() if s.date else None, 'note_finale': s.note_finale}
+
+        etudiants.append({
+            'pfe_id': pfe.pk,
+            'etudiant': f"{pfe.etudiant.prenom} {pfe.etudiant.nom}",
+            'titre': pfe.titre,
+            'livrables': livs,
+            'soutenance': sout,
+        })
+
+    return {
+        'encadrant': f"{encadrant.prenom} {encadrant.nom}",
+        'total_etudiants_en_cours': len(etudiants),
+        'livrables_en_attente': livrables_en_attente,
+        'etudiants': etudiants,
+    }
+
+
 def export_pdf(filiere=None, annee=None):
     try:
         from reportlab.lib.pagesizes import A4

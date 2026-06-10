@@ -9,6 +9,8 @@ from .services import (
     calculer_stats_globales,
     calculer_stats_toutes_filieres,
     classement_etudiants,
+    dashboard_coordinateur,
+    dashboard_encadrant,
     export_csv,
     export_excel,
     export_pdf,
@@ -59,6 +61,20 @@ def classement(request):
         for i, s in enumerate(qs, 1)
     ]
     return Response({'success': True, 'count': len(data), 'data': data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_coordinateur_view(request):
+    annee_id = request.query_params.get('annee_id')
+    data = dashboard_coordinateur(int(annee_id) if annee_id else None)
+    return Response({'success': True, 'data': data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_encadrant_view(request, pk):
+    return Response({'success': True, 'data': dashboard_encadrant(pk)})
 
 
 @api_view(['GET'])

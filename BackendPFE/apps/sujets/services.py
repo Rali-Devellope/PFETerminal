@@ -41,6 +41,7 @@ def refuser_sujet(sujet, coordinateur, motif):
 
 def affecter_encadrant(sujet, encadrant_id, coordinateur):
     from apps.authentication.models import CustomUser
+    from apps.pfe.models import PFE
     try:
         encadrant = CustomUser.objects.get(pk=encadrant_id)
     except CustomUser.DoesNotExist:
@@ -49,6 +50,16 @@ def affecter_encadrant(sujet, encadrant_id, coordinateur):
         raise ValidationError("Le sujet doit être VALIDÉ pour affecter un encadrant")
     if encadrant.role not in ('encadrant_acad', 'encadrant_entr'):
         raise ValidationError("L'utilisateur n'a pas le rôle d'encadrant")
+
+    charge_actuelle = PFE.objects.filter(
+        encadrant_acad=encadrant, statut='EN_COURS'
+    ).count()
+    if charge_actuelle >= encadrant.max_etudiants:
+        raise ValidationError(
+            f"Cet encadrant a atteint sa limite d'encadrement "
+            f"({charge_actuelle}/{encadrant.max_etudiants} étudiants)."
+        )
+
     sujet.encadrant = encadrant
     sujet.statut = 'AFFECTE'
     sujet.save(update_fields=['encadrant', 'statut', 'updated_at'])

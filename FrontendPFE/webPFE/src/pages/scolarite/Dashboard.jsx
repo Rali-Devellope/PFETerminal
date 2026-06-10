@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card, { StatCard } from '../../components/UI/Card'
 import { getStatsGlobales, getClassement, exportCSV, exportExcel, exportPDF } from '../../api/stats'
 import { getPFEs, archiverPFE } from '../../api/pfe'
+import { createUser } from '../../api/auth'
 import { PVButton, ReleveButton, AttestationButton } from '../../components/UI/PdfButtons'
 
 const FILIERES = ['', 'Finance', 'Comptabilité', 'Audit', 'Management', 'Informatique']
@@ -33,6 +34,10 @@ export default function ScolariteDashboard() {
   const [annee, setAnnee] = useState('')
   const [search, setSearch] = useState('')
   const [exporting, setExporting] = useState('')
+  const [showEtudiantForm, setShowEtudiantForm] = useState(false)
+  const [etudiantForm, setEtudiantForm] = useState({ prenom: '', nom: '', email: '', password: '', filiere: '' })
+  const [etudiantError, setEtudiantError] = useState('')
+  const [etudiantSuccess, setEtudiantSuccess] = useState('')
 
   const NAV_ITEMS = [
     { to: '/scolarite', end: true, label: t('scolarite.title'),
@@ -62,6 +67,29 @@ export default function ScolariteDashboard() {
     mutationFn: archiverPFE,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pfe-scolarite'] }),
   })
+
+  const createEtudiantMut = useMutation({
+    mutationFn: (data) => createUser({ ...data, role: 'etudiant' }),
+    onSuccess: () => {
+      setEtudiantSuccess('Compte étudiant créé. Email envoyé.')
+      setEtudiantForm({ prenom: '', nom: '', email: '', password: '', filiere: '' })
+      setEtudiantError('')
+      setTimeout(() => setEtudiantSuccess(''), 4000)
+    },
+    onError: (e) => {
+      const err = e.response?.data
+      setEtudiantError(err?.error?.message ?? err?.email?.[0] ?? 'Erreur lors de la création')
+    },
+  })
+
+  const handleCreateEtudiant = (e) => {
+    e.preventDefault()
+    if (!etudiantForm.prenom || !etudiantForm.nom || !etudiantForm.email || !etudiantForm.password) {
+      setEtudiantError('Remplissez tous les champs obligatoires'); return
+    }
+    setEtudiantError('')
+    createEtudiantMut.mutate(etudiantForm)
+  }
 
   const { data: classementRes, isLoading } = useQuery({
     queryKey: ['classement', filiere, annee],
@@ -99,6 +127,65 @@ export default function ScolariteDashboard() {
           {t('scolarite.title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">{t('scolarite.sub')}</p>
+      </div>
+
+      {/* Bouton + formulaire créer étudiant */}
+      <div className="mb-6">
+        <button onClick={() => { setShowEtudiantForm((v) => !v); setEtudiantError(''); setEtudiantSuccess('') }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white mb-4"
+          style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)', boxShadow: '0 4px 12px rgba(45,184,75,0.3)' }}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            {showEtudiantForm ? <line x1="18" y1="6" x2="6" y2="18"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
+          </svg>
+          {showEtudiantForm ? t('common.cancel') : 'Inscrire un étudiant'}
+        </button>
+
+        {showEtudiantForm && (
+          <div className="bg-white rounded-2xl p-6 mb-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9' }}>
+            <h3 className="text-sm font-bold mb-4" style={{ color: '#1a2744' }}>
+              Nouveau compte étudiant
+            </h3>
+
+            {etudiantSuccess && (
+              <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                ✓ {etudiantSuccess}
+              </div>
+            )}
+            {etudiantError && (
+              <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
+                {etudiantError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateEtudiant} className="grid sm:grid-cols-2 gap-4">
+              {[
+                { key: 'prenom',   label: 'Prénom *',          ph: 'Prénom' },
+                { key: 'nom',      label: 'Nom *',             ph: 'Nom de famille' },
+                { key: 'email',    label: 'Email @iscae.mr *', ph: 'etudiant@iscae.mr', type: 'email' },
+                { key: 'password', label: 'Mot de passe *',    ph: '••••••••', type: 'password' },
+                { key: 'filiere',  label: 'Filière',           ph: 'Finance, Informatique...' },
+              ].map(({ key, label, ph, type = 'text' }) => (
+                <div key={key}>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-600">{label}</label>
+                  <input type={type} value={etudiantForm[key]}
+                    onChange={(e) => setEtudiantForm({ ...etudiantForm, [key]: e.target.value })}
+                    placeholder={ph}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+                    style={{ borderColor: '#e5e7eb' }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+              ))}
+              <div className="sm:col-span-2 flex justify-end">
+                <button type="submit" disabled={createEtudiantMut.isPending}
+                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{ backgroundColor: '#2db84b', opacity: createEtudiantMut.isPending ? 0.7 : 1 }}>
+                  {createEtudiantMut.isPending ? 'Création...' : 'Créer le compte'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Stats */}

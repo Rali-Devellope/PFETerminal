@@ -26,6 +26,7 @@ import ScolariteDashboard from '../pages/scolarite/Dashboard'
 
 import Stats from '../pages/stats/Stats'
 import Notifications from '../pages/notifications/Notifications'
+import Messages from '../pages/messages/Messages'
 
 const guard = (roles, element) => (
   <ProtectedRoute roles={roles}>{element}</ProtectedRoute>
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
   { path: '/change-password', element: <ChangePassword /> },
   { path: '/profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
   { path: '/notifications', element: <ProtectedRoute><Notifications /></ProtectedRoute> },
+  { path: '/messages', element: <ProtectedRoute><Messages /></ProtectedRoute> },
 
   { path: '/etudiant', element: guard(['etudiant'], <EtudiantDashboard />) },
   { path: '/etudiant/sujets', element: guard(['etudiant'], <EtudiantSujets />) },

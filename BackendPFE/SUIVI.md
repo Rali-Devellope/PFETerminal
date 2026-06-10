@@ -643,3 +643,187 @@ python -m coverage run manage.py test apps.authentication apps.sujets apps.pfe a
 python -m coverage report
 → TOTAL : 94%
 ```
+
+---
+
+## Améliorations — Priorité 1 : Fondations universitaires ✅
+
+> Implémentées après la Phase 7. Tests : 65/65 OK.
+
+### A1 — Année académique
+
+**Modèle `AnneeAcademique`** (`apps/pfe/models.py`) — une seule active à la fois (save() auto-désactive les autres).
+
+**Modèle `Deadline`** (`apps/pfe/models.py`) — deadline par type de livrable, liée à une année. Flag `hors_delai` sur `Livrable` (soft enforcement).
+
+**Services** (`apps/pfe/services.py`) — `get_annee_active()`, `creer_annee()`, `ouvrir_annee()`, `fermer_annee_active()`, `definir_deadline()`. `upload_livrable()` détecte et enregistre `hors_delai` automatiquement.
+
+**Nouveaux endpoints** (`AnneeAcademiqueViewSet`) :
+
+| Méthode | URL | Permission |
+|---|---|---|
+| POST | `/api/v1/annees/creer/` | IsCoordinateur |
+| POST | `/api/v1/annees/{id}/ouvrir/` | IsCoordinateur |
+| POST | `/api/v1/annees/{id}/fermer/` | IsCoordinateur |
+| GET | `/api/v1/annees/active/` | IsAuthenticated |
+| GET/POST | `/api/v1/annees/{id}/deadlines/` | IsCoordinateur |
+
+**Migrations :** `pfe/migrations/0002_anneeacademique_livrable_hors_delai_pfe_mention_and_more.py`
+
+---
+
+### A2 — Deadlines souples pour les livrables
+
+Lié à A1. Lors du dépôt d'un livrable, `upload_livrable()` compare `timezone.now()` à la deadline de l'année active. Si dépassé → `hors_delai=True` sur le livrable (aucun blocage, le coordinateur voit le flag). `LivrableSerializer` expose le champ `hors_delai`.
+
+---
+
+### A3 — Convocation PDF à l'autorisation de soutenance
+
+Nouveau statut initial `EN_ATTENTE_AUTORISATION` (max_length porté à 30).
+
+**`autoriser_soutenance()`** (`apps/soutenances/services.py`) :
+- Exige jury ≥ 2 membres avant autorisation
+- Passe le statut `EN_ATTENTE_AUTORISATION` → `PLANIFIEE`
+- Génère automatiquement la convocation PDF (ReportLab) : en-tête ISCAE, infos étudiant/soutenance, composition jury, zone signatures
+- Envoie notification `notifier_soutenance_planifiee()`
+
+**`generer_convocation_pdf()`** (`apps/soutenances/services.py`) — génère `convocation_<pk>.pdf` dans `media/convocations/`.
+
+**Nouveau endpoint** :
+
+| Méthode | URL | Permission |
+|---|---|---|
+| GET | `/api/v1/soutenances/{id}/convocation_pdf/` | IsAuthenticated |
+
+**Migration :** `soutenances/migrations/0002_soutenance_annee_academique_alter_soutenance_statut.py`
+
+---
+
+### A4 — Délibération et mentions après clôture de session
+
+**`_get_mention_code(note)`** — retourne le code mention selon le barème ISCAE :
+- ≥ 16 → `TB` (Très Bien)
+- ≥ 14 → `B` (Bien)
+- ≥ 12 → `AB` (Assez Bien)
+- ≥ 10 → `P` (Passable)
+- < 10 → `AJ` (Ajourné)
+
+**`cloturer_session(annee_academique_id)`** (`apps/soutenances/services.py`) :
+- Vérifie que **toutes** les soutenances de l'année sont `TERMINEE`
+- Calcule et enregistre la mention sur chaque `PFE`
+- Passe le statut PFE à `VALIDE` (≥10) ou `REFUSE` (<10)
+- Envoie notification résultats à chaque étudiant
+- Ferme l'année (active=False)
+
+**`PFE`** : champ `mention` (choices `MENTIONS`) + FK `annee_academique`.
+
+**`notifier_resultats_publies()`** (`apps/notifications/services.py`) — notification email+WS résultats publiés.
+
+**Nouveau endpoint** :
+
+| Méthode | URL | Permission |
+|---|---|---|
+| POST | `/api/v1/soutenances/cloturer_session/` | IsCoordinateur — body `{"annee_academique_id": N}` |
+
+---
+
+### A5 — Limite max étudiants par encadrant
+
+Champ `max_etudiants = PositiveIntegerField(default=5)` sur `CustomUser`.
+
+**`affecter_encadrant()`** (`apps/sujets/services.py`) — compte les PFE `EN_COURS` de l'encadrant et lève `ValidationError` si `charge_actuelle >= max_etudiants`.
+
+**Migration :** `authentication/migrations/0002_customuser_max_etudiants.py`
+
+---
+
+### Bilan Priorité 1
+
+| Amélioration | Fichiers modifiés | Tests |
+|---|---|---|
+| A1 Année académique | `pfe/models.py`, `pfe/services.py`, `pfe/serializers.py`, `pfe/views.py`, `pfe/urls.py` | ✅ |
+| A2 Deadlines livrables | `pfe/models.py`, `pfe/services.py`, `pfe/serializers.py` | ✅ |
+| A3 Convocation PDF | `soutenances/models.py`, `soutenances/services.py`, `soutenances/views.py` | ✅ |
+| A4 Délibération/mentions | `pfe/models.py`, `soutenances/services.py`, `notifications/services.py` | ✅ |
+| A5 Limite encadrant | `authentication/models.py`, `sujets/services.py` | ✅ |
+
+```
+python manage.py test apps.authentication apps.sujets apps.pfe apps.soutenances apps.notifications apps.statistiques
+Ran 65 tests  →  OK (65/65)
+```
+
+---
+
+## Améliorations — Priorité 2 : Processus universitaire complet ✅
+
+> Implémentées après Priorité 1. Tests : 65/65 OK.
+
+### B1 — Fiche d'inscription PFE officielle
+
+**Modèle `FicheInscription`** (`apps/pfe/models.py`) — OneToOne PFE, statut de signature (`EN_ATTENTE_ENCADRANT` → `EN_ATTENTE_COORDINATEUR` → `SIGNEE`), champs `signe_encadrant`, `signe_coordinateur`, `chemin_pdf`.
+
+**Signal** (`apps/pfe/signals.py`) — génère automatiquement la fiche PDF quand le PFE est créé. Erreur silencieuse si ReportLab absent.
+
+**Services** (`apps/pfe/services.py`) :
+- `generer_fiche_inscription(pfe)` — PDF ReportLab dans `media/fiches/`
+- `signer_fiche(fiche, signataire)` — workflow : encadrant signe en premier, coordinateur en second
+
+**Endpoints** :
+
+| Méthode | URL | Permission |
+|---|---|---|
+| POST | `/api/v1/pfe/{id}/generer-fiche/` | IsCoordinateur |
+| GET | `/api/v1/pfe/{id}/fiche-pdf/` | IsAuthenticated |
+| POST | `/api/v1/pfe/{id}/signer-fiche/` | IsAuthenticated (encadrant ou coordinateur) |
+
+**Migration :** `pfe/migrations/0003_fiche_inscription.py`
+
+---
+
+### B2 — Bibliothèque des PFE archivés
+
+**`BibliothequeViewSet`** (`apps/pfe/views.py`) — filtre `statut=ARCHIVE`, respecte le champ `confidentiel`.
+
+```
+GET /api/v1/bibliotheque/?filiere=Finance
+GET /api/v1/bibliotheque/?annee=2025
+GET /api/v1/bibliotheque/?encadrant_id=3
+GET /api/v1/bibliotheque/?mention=tres_bien
+GET /api/v1/bibliotheque/?search=gestion
+```
+
+---
+
+### B3 — Dashboard coordinateur enrichi
+
+**`dashboard_coordinateur(annee_id=None)`** (`apps/statistiques/services.py`) — sujets en attente, PFE sans encadrant, livrables en attente, soutenances en attente d'autorisation, % rapport validé, étudiants sans soutenance, alertes deadlines (7 jours).
+
+| Méthode | URL |
+|---|---|
+| GET | `/api/v1/stats/dashboard/coordinateur/?annee_id=N` |
+
+---
+
+### B4 — Dashboard encadrant enrichi
+
+**`dashboard_encadrant(encadrant_id)`** (`apps/statistiques/services.py`) — progression livrable (rapport/code/présentation) + soutenance pour chaque étudiant EN_COURS.
+
+| Méthode | URL |
+|---|---|
+| GET | `/api/v1/stats/dashboard/encadrant/{id}/` |
+
+---
+
+### Bilan Priorité 2
+
+| Amélioration | Tests |
+|---|---|
+| B1 Fiche inscription PDF | ✅ |
+| B2 Bibliothèque archivés | ✅ |
+| B3 Dashboard coordinateur | ✅ |
+| B4 Dashboard encadrant | ✅ |
+
+```
+Ran 65 tests  →  OK (65/65)
+```

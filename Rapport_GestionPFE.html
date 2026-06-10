@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rapport PFE — GestionPFE</title>
+<style>
+  /* ── Typographie générale ── */
+  body { font-family: Arial, sans-serif; font-size: 12pt; color: #111; margin: 0; padding: 0; }
+  @page { size: A4; margin: 2.5cm; }
+
+  /* ── Page de garde ── */
+  .cover { page-break-after: always; text-align: center; padding-top: 80px; }
+  .cover .etablissement { font-size: 14pt; font-weight: bold; color: #1F3864; margin-bottom: 4px; }
+  .cover .sous-etab { font-size: 11pt; color: #2E74B5; margin-bottom: 60px; }
+  .cover .label-rapport { font-size: 16pt; font-weight: bold; color: #1F3864; border-bottom: 2px solid #2E74B5; display: inline-block; padding-bottom: 8px; margin-bottom: 50px; }
+  .cover .titre-app { font-size: 38pt; font-weight: bold; color: #1F3864; line-height: 1.1; margin-bottom: 10px; }
+  .cover .sous-titre { font-size: 16pt; font-style: italic; color: #2E74B5; margin-bottom: 80px; }
+  .cover .info-item { font-size: 13pt; margin: 6px 0; }
+  .cover .info-item.bold { font-weight: bold; }
+  .cover .annee { font-size: 13pt; font-weight: bold; color: #1F3864; margin-top: 60px; }
+
+  /* ── Titres ── */
+  h1 { font-size: 20pt; font-weight: bold; color: #1F3864; margin-top: 30px; margin-bottom: 10px; border-bottom: 2px solid #2E74B5; padding-bottom: 4px; }
+  h2 { font-size: 15pt; font-weight: bold; color: #2E74B5; margin-top: 22px; margin-bottom: 8px; }
+  h3 { font-size: 13pt; font-weight: bold; color: #1F3864; margin-top: 18px; margin-bottom: 6px; }
+
+  /* ── Paragraphe ── */
+  p { text-align: justify; line-height: 1.6; margin: 6px 0 10px 0; }
+
+  /* ── Listes ── */
+  ul { margin: 6px 0 10px 0; padding-left: 24px; }
+  ul li { margin: 4px 0; line-height: 1.5; }
+
+  /* ── Tables ── */
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px 0; font-size: 11pt; }
+  th { background-color: #2E74B5; color: #fff; font-weight: bold; text-align: center; padding: 7px 8px; border: 1px solid #2E74B5; }
+  td { padding: 6px 8px; border: 1px solid #CCCCCC; vertical-align: top; }
+  tr:nth-child(even) td { background-color: #F2F2F2; }
+  td.bold { font-weight: bold; }
+
+  /* ── Saut de page ── */
+  .page-break { page-break-after: always; }
+  .toc-placeholder { background: #eef4fb; border-left: 4px solid #2E74B5; padding: 12px 16px; margin: 20px 0; font-style: italic; color: #555; }
+
+  /* ── En-tête / pied de page pour impression ── */
+  @media print {
+    header-text { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PAGE DE GARDE
+══════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="etablissement">Institut Supérieur de Commerce et d'Administration des Entreprises</div>
+  <div class="sous-etab">ISCAE</div>
+  <div class="label-rapport">Rapport de Projet de Fin d'Études</div>
+  <div class="titre-app">GestionPFE</div>
+  <div class="sous-titre">Application Web de Gestion des Projets de Fin d'Études</div>
+  <div class="info-item bold">Réalisé par : Harouna Ralihroun</div>
+  <div class="info-item">Email : ralihroun470@gmail.com</div>
+  <div class="annee">Année universitaire 2025 – 2026</div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 1 — INTRODUCTION
+══════════════════════════════════════════════════════════════════ -->
+<h1>1. Introduction</h1>
+
+<h2>1.1 Contexte et motivation</h2>
+<p>Dans le cadre de la formation dispensée à l'ISCAE (Institut Supérieur de Commerce et d'Administration des Entreprises), chaque étudiant est tenu de réaliser un Projet de Fin d'Études (PFE). Ce processus implique de nombreux acteurs — étudiants, encadrants académiques, encadrants d'entreprise, jury, coordinateurs et services de scolarité — et génère un volume important d'échanges administratifs. La gestion manuelle de ces flux présente des risques de perte d'information, de délais et d'incohérences.</p>
+<p>L'application <strong>GestionPFE</strong> a pour ambition de centraliser et d'automatiser l'ensemble de ce cycle de vie : de la proposition de sujet jusqu'à la génération des documents officiels post-soutenance, en passant par la validation, le dépôt de livrables, la détection de plagiat et la planification des soutenances.</p>
+
+<h2>1.2 Objectifs du projet</h2>
+<p>Les objectifs principaux de ce projet sont les suivants :</p>
+<ul>
+  <li>Numériser le processus de gestion des PFE de l'ISCAE de bout en bout.</li>
+  <li>Offrir une interface API REST sécurisée, accessible selon le rôle de chaque utilisateur.</li>
+  <li>Automatiser les notifications par email et en temps réel (WebSocket).</li>
+  <li>Générer automatiquement les documents officiels (PV, relevés de notes, attestations).</li>
+  <li>Fournir des tableaux de bord statistiques et des exports de données.</li>
+</ul>
+
+<h2>1.3 Périmètre fonctionnel</h2>
+<p>Le projet couvre un périmètre fonctionnel en six domaines : authentification et gestion des utilisateurs, gestion des sujets, gestion des PFE et livrables, gestion des soutenances et notes, notifications, et statistiques et exports. Chaque domaine est implémenté sous la forme d'une application Django indépendante suivant les principes du Domain-Driven Design (DDD).</p>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 2 — ANALYSE DES BESOINS
+══════════════════════════════════════════════════════════════════ -->
+<h1>2. Analyse des Besoins</h1>
+
+<h2>2.1 Les acteurs du système</h2>
+<p>Le système identifie sept catégories d'acteurs distincts, chacun disposant de permissions et d'un tableau de bord adaptés à ses responsabilités.</p>
+
+<table>
+  <thead><tr><th>Acteur</th><th>Rôle principal</th><th>Actions clés</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">Étudiant</td><td>Porteur du PFE</td><td>Choisir sujet, déposer livrables, consulter notes</td></tr>
+    <tr><td class="bold">Encadrant Académique</td><td>Suivi pédagogique</td><td>Proposer sujets, valider livrables, noter</td></tr>
+    <tr><td class="bold">Encadrant Entreprise</td><td>Suivi professionnel</td><td>Proposer sujets, suivre l'étudiant</td></tr>
+    <tr><td class="bold">Coordinateur</td><td>Chef d'orchestre du processus</td><td>Valider/refuser sujets, affecter encadrants, planifier soutenances</td></tr>
+    <tr><td class="bold">Jury</td><td>Évaluation lors de la soutenance</td><td>Consulter planning, noter, signer PV</td></tr>
+    <tr><td class="bold">Scolarité</td><td>Gestion administrative</td><td>Consulter archives, imprimer relevés, télécharger PV</td></tr>
+    <tr><td class="bold">Administrateur</td><td>Super-utilisateur</td><td>Créer tous les comptes, accès total lecture/écriture</td></tr>
+  </tbody>
+</table>
+
+<h2>2.2 Flux principal — Cycle de vie d'un PFE</h2>
+<p>Le cycle de vie d'un PFE se déroule en cinq étapes successives, chacune déclenchant des actions et des notifications automatisées.</p>
+
+<table>
+  <thead><tr><th>Étape</th><th>Acteur principal</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">1 — Proposition</td><td>Encadrant / Étudiant</td><td>Soumission d'un sujet avec titre, description, filière et origine</td></tr>
+    <tr><td class="bold">2 — Validation</td><td>Coordinateur</td><td>Validation ou refus du sujet ; création automatique du PFE si validé (signal Django)</td></tr>
+    <tr><td class="bold">3 — Travail PFE</td><td>Étudiant + Encadrant</td><td>Dépôt des livrables (rapport, code, présentation), validation, calcul du score plagiat</td></tr>
+    <tr><td class="bold">4 — Soutenance</td><td>Coordinateur + Jury</td><td>Planification, affectation du jury, notation, génération du PV PDF</td></tr>
+    <tr><td class="bold">5 — Archivage</td><td>Système</td><td>Passage au statut ARCHIVÉ, disponible dans les statistiques et exports</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 3 — ARCHITECTURE TECHNIQUE
+══════════════════════════════════════════════════════════════════ -->
+<h1>3. Architecture Technique</h1>
+
+<h2>3.1 Stack technologique</h2>
+<p>L'application repose sur une stack moderne orientée API, conçue pour la robustesse, la sécurité et l'extensibilité.</p>
+
+<table>
+  <thead><tr><th>Couche</th><th>Technologie</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">Backend</td><td>Django 4.2+ / Python</td><td>Framework web principal</td></tr>
+    <tr><td class="bold">API REST</td><td>Django REST Framework (DRF)</td><td>Sérialisation, vues, permissions</td></tr>
+    <tr><td class="bold">Authentification</td><td>SimpleJWT + Blacklist</td><td>Tokens JWT, refresh, révocation</td></tr>
+    <tr><td class="bold">Temps réel</td><td>Django Channels + Redis</td><td>WebSocket pour notifications push</td></tr>
+    <tr><td class="bold">Base de données</td><td>PostgreSQL 15</td><td>Persistance des données</td></tr>
+    <tr><td class="bold">Génération PDF</td><td>ReportLab</td><td>PV, relevés de notes, attestations</td></tr>
+    <tr><td class="bold">Export données</td><td>openpyxl</td><td>Export Excel des statistiques</td></tr>
+    <tr><td class="bold">Documentation API</td><td>drf-yasg (Swagger)</td><td>Documentation interactive des endpoints</td></tr>
+  </tbody>
+</table>
+
+<h2>3.2 Architecture Domain-Driven Design (DDD)</h2>
+<p>L'architecture suit les principes du Domain-Driven Design : chaque domaine métier est encapsulé dans une application Django indépendante avec ses propres modèles, services, serializers et vues. La logique métier réside exclusivement dans les fichiers <code>services.py</code>, les vues restant légères.</p>
+
+<table>
+  <thead><tr><th>Application</th><th>Domaine</th><th>Responsabilités principales</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">authentication</td><td>Utilisateurs &amp; Auth</td><td>Modèle CustomUser (7 rôles), JWT, RBAC, premier login</td></tr>
+    <tr><td class="bold">sujets</td><td>Gestion des sujets</td><td>Proposition, validation, refus, affectation d'encadrant</td></tr>
+    <tr><td class="bold">pfe</td><td>PFE &amp; Livrables</td><td>Gestion des PFE, dépôt de livrables, détection de plagiat, archivage</td></tr>
+    <tr><td class="bold">soutenances</td><td>Soutenances &amp; Notes</td><td>Planification, jury, notation, génération PDF (PV, relevés)</td></tr>
+    <tr><td class="bold">notifications</td><td>Notifications</td><td>Email SMTP automatique, push WebSocket temps réel</td></tr>
+    <tr><td class="bold">statistiques</td><td>Stats &amp; Exports</td><td>Dashboard, stats par filière, classements, exports CSV/Excel/PDF</td></tr>
+  </tbody>
+</table>
+
+<h2>3.3 Règles architecturales</h2>
+<ul>
+  <li><strong>Services</strong> : toute la logique métier réside dans <code>services.py</code>, jamais dans les vues.</li>
+  <li><strong>Views</strong> : légères, elles appellent uniquement les services.</li>
+  <li><strong>Models</strong> : données et propriétés simples uniquement, sans logique.</li>
+  <li><strong>Permissions</strong> : centralisées dans <code>core/permissions.py</code>, jamais inline.</li>
+  <li><strong>Signals</strong> : uniquement pour les effets de bord automatiques (création PFE, notifications).</li>
+  <li><strong>Tests</strong> : un fichier <code>tests.py</code> par application, objectif couverture ≥ 70 %.</li>
+</ul>
+
+<h2>3.4 Structure du projet</h2>
+<table>
+  <thead><tr><th>Répertoire</th><th>Contenu</th></tr></thead>
+  <tbody>
+    <tr><td><code>apps/</code></td><td>Les six applications Django (domaines métier)</td></tr>
+    <tr><td><code>core/</code></td><td>Code partagé : permissions, exceptions, throttling, pagination, mixins</td></tr>
+    <tr><td><code>config/</code></td><td>Settings (base / dev / prod), ASGI, URLs globales</td></tr>
+    <tr><td><code>tests/</code></td><td>Tests d'intégration cross-apps et fixtures partagées</td></tr>
+    <tr><td><code>requirements/</code></td><td>base.txt, dev.txt, prod.txt</td></tr>
+    <tr><td><code>media/</code></td><td>Fichiers uploadés (livrables PDF, code, présentations)</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 4 — MODÈLES DE DONNÉES
+══════════════════════════════════════════════════════════════════ -->
+<h1>4. Modèles de Données</h1>
+
+<h2>4.1 Modèle utilisateur — CustomUser</h2>
+<p>L'authentification repose sur un modèle utilisateur personnalisé (<code>CustomUser</code>) héritant d'<code>AbstractBaseUser</code> et <code>PermissionsMixin</code>. L'identifiant de connexion est l'adresse email institutionnelle (format <code>prenom.nom@iscae.ma</code>).</p>
+
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">email</td><td>EmailField (unique)</td><td>Identifiant de connexion — domaine @iscae.ma</td></tr>
+    <tr><td class="bold">nom / prenom</td><td>CharField</td><td>Nom et prénom de l'utilisateur</td></tr>
+    <tr><td class="bold">role</td><td>CharField (choices)</td><td>etudiant, encadrant_acad, encadrant_entr, coordinateur, jury, scolarite, admin</td></tr>
+    <tr><td class="bold">is_first_login</td><td>BooleanField</td><td>Vrai si l'utilisateur n'a pas encore changé son mot de passe temporaire</td></tr>
+    <tr><td class="bold">is_active</td><td>BooleanField</td><td>Permet de désactiver un compte sans le supprimer</td></tr>
+    <tr><td class="bold">created_at / updated_at</td><td>DateTimeField</td><td>Horodatages de création et de modification</td></tr>
+  </tbody>
+</table>
+
+<h2>4.2 Modèle Sujet</h2>
+<p>Le sujet représente la proposition initiale de PFE. Un sujet validé déclenche automatiquement la création d'un PFE via un signal Django (<code>post_save</code>).</p>
+
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">titre</td><td>CharField</td><td>Intitulé du sujet (max 300 caractères)</td></tr>
+    <tr><td class="bold">statut</td><td>choices</td><td>PROPOSE → VALIDE / REFUSE → AFFECTE</td></tr>
+    <tr><td class="bold">origine</td><td>choices</td><td>academique ou entreprise</td></tr>
+    <tr><td class="bold">filiere / annee</td><td>CharField / IntegerField</td><td>Filière et année académique du PFE</td></tr>
+    <tr><td class="bold">propose_par</td><td>ForeignKey (User)</td><td>Auteur de la proposition (encadrant ou étudiant)</td></tr>
+    <tr><td class="bold">encadrant</td><td>ForeignKey (User, null)</td><td>Encadrant affecté après validation</td></tr>
+  </tbody>
+</table>
+
+<h2>4.3 Modèles PFE et Livrable</h2>
+<p>Un PFE est créé automatiquement lorsqu'un sujet est validé. Il regroupe les livrables déposés par l'étudiant tout au long du projet.</p>
+
+<table>
+  <thead><tr><th>Champ (PFE)</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">statut</td><td>choices</td><td>EN_COURS, VALIDE, REFUSE, ARCHIVE</td></tr>
+    <tr><td class="bold">score_plagiat</td><td>FloatField</td><td>Score de similitude calculé automatiquement (0 à 100 %)</td></tr>
+    <tr><td class="bold">sujet</td><td>OneToOneField</td><td>Sujet validé à l'origine du PFE</td></tr>
+    <tr><td class="bold">etudiant</td><td>ForeignKey (User)</td><td>Porteur du PFE</td></tr>
+    <tr><td class="bold">encadrant_acad / encadrant_entr</td><td>ForeignKey (User, null)</td><td>Encadrants académique et entreprise assignés</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead><tr><th>Champ (Livrable)</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">type</td><td>choices</td><td>rapport, code, presentation</td></tr>
+    <tr><td class="bold">fichier</td><td>FileField</td><td>Fichier uploadé, chemin dynamique selon type et PFE</td></tr>
+    <tr><td class="bold">statut</td><td>choices</td><td>EN_ATTENTE, VALIDE, REFUSE</td></tr>
+    <tr><td class="bold">remarques</td><td>TextField</td><td>Commentaire de l'encadrant lors de la validation</td></tr>
+  </tbody>
+</table>
+
+<h2>4.4 Modèles Soutenance et Note</h2>
+<p>La soutenance est planifiée par le coordinateur. Les membres du jury soumettent leur note individuellement ; la note finale est calculée par une moyenne pondérée via le service <code>calculer_note_finale()</code>.</p>
+
+<table>
+  <thead><tr><th>Champ (Soutenance)</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">date / salle / duree</td><td>DateTime / Char / Int</td><td>Planification logistique de la soutenance</td></tr>
+    <tr><td class="bold">membres_jury</td><td>ManyToManyField</td><td>2 à 3 membres du jury assignés</td></tr>
+    <tr><td class="bold">note_finale</td><td>FloatField (null)</td><td>Moyenne pondérée calculée après toutes les notations</td></tr>
+    <tr><td class="bold">statut</td><td>choices</td><td>PLANIFIEE, EN_COURS, TERMINEE, REPORTEE</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 5 — SÉCURITÉ
+══════════════════════════════════════════════════════════════════ -->
+<h1>5. Sécurité</h1>
+
+<h2>5.1 Authentification JWT</h2>
+<p>L'authentification repose sur des tokens JWT (JSON Web Tokens) via la bibliothèque <code>djangorestframework-simplejwt</code>. Le système utilise un access token de courte durée (15 minutes) couplé à un refresh token valable 7 jours. Lors du logout, le refresh token est placé en blacklist et devient définitivement inutilisable.</p>
+
+<h2>5.2 Contrôle d'accès par rôle (RBAC)</h2>
+<p>Chaque endpoint de l'API vérifie le rôle de l'utilisateur connecté via des classes de permissions centralisées dans <code>core/permissions.py</code>. Aucune permission n'est définie inline dans les vues. Les sept rôles disposent chacun d'une classe dédiée : <code>IsEtudiant</code>, <code>IsEncadrantAcad</code>, <code>IsEncadrantEntr</code>, <code>IsCoordinateur</code>, <code>IsJury</code>, <code>IsScolarite</code>, <code>IsAdmin</code>.</p>
+
+<h2>5.3 Mécanismes de sécurité complémentaires</h2>
+<table>
+  <thead><tr><th>Mécanisme</th><th>Détail</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">Rate limiting</td><td>5 tentatives de login par minute par IP — blocage 60 secondes si dépassé</td></tr>
+    <tr><td class="bold">Hachage des mots de passe</td><td>bcrypt Django — les mots de passe ne sont jamais stockés en clair</td></tr>
+    <tr><td class="bold">Validation du domaine email</td><td>Seuls les emails @iscae.ma sont acceptés — vérification côté backend</td></tr>
+    <tr><td class="bold">Changement de mot de passe forcé</td><td>Le champ <code>is_first_login</code> oblige le changement du mot de passe temporaire à la première connexion</td></tr>
+    <tr><td class="bold">Pas d'inscription publique</td><td>Seul l'administrateur peut créer des comptes — aucun endpoint /register/ public n'existe</td></tr>
+    <tr><td class="bold">Access token court</td><td>Durée de vie de 15 minutes — minimise l'impact en cas de vol</td></tr>
+    <tr><td class="bold">Refresh token en HttpOnly cookie</td><td>Inaccessible au JavaScript côté client</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 6 — API REST
+══════════════════════════════════════════════════════════════════ -->
+<h1>6. API REST — Principaux Endpoints</h1>
+
+<h2>6.1 Authentification</h2>
+<table>
+  <thead><tr><th>Méthode</th><th>URL</th><th>Permission</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/api/v1/auth/login/</code></td><td>Public</td><td>Connexion (email + password)</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/auth/logout/</code></td><td>Authentifié</td><td>Déconnexion + blacklist du refresh token</td></tr>
+    <tr><td>GET/PUT</td><td><code>/api/v1/auth/me/</code></td><td>Authentifié</td><td>Consulter / modifier son profil</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/auth/users/</code></td><td>Admin</td><td>Créer un compte utilisateur</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/auth/users/</code></td><td>Admin</td><td>Lister tous les comptes</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/auth/token/refresh/</code></td><td>Public</td><td>Renouveler l'access token</td></tr>
+  </tbody>
+</table>
+
+<h2>6.2 Sujets</h2>
+<table>
+  <thead><tr><th>Méthode</th><th>URL</th><th>Permission</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>GET/POST</td><td><code>/api/v1/sujets/</code></td><td>Authentifié</td><td>Lister / proposer un sujet</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/sujets/{id}/valider/</code></td><td>Coordinateur</td><td>Valider un sujet</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/sujets/{id}/refuser/</code></td><td>Coordinateur</td><td>Refuser avec motif</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/sujets/{id}/affecter/</code></td><td>Coordinateur</td><td>Affecter un encadrant</td></tr>
+  </tbody>
+</table>
+
+<h2>6.3 PFE, Soutenances et Statistiques</h2>
+<table>
+  <thead><tr><th>Méthode</th><th>URL</th><th>Permission</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>GET/POST</td><td><code>/api/v1/pfe/</code></td><td>Authentifié</td><td>Lister les PFE</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/livrables/</code></td><td>Étudiant</td><td>Déposer un livrable</td></tr>
+    <tr><td>GET/POST</td><td><code>/api/v1/soutenances/</code></td><td>Coordinateur / Jury</td><td>Planifier / consulter soutenances</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/notes/</code></td><td>Jury</td><td>Soumettre une note</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/stats/</code></td><td>Admin / Coordinateur</td><td>Statistiques globales</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/stats/export_csv/</code></td><td>Admin / Coordinateur</td><td>Export CSV</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/stats/export_excel/</code></td><td>Admin / Coordinateur</td><td>Export Excel (.xlsx)</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 7 — NOTIFICATIONS
+══════════════════════════════════════════════════════════════════ -->
+<h1>7. Système de Notifications</h1>
+
+<h2>7.1 Canal email (SMTP)</h2>
+<p>Des emails automatiques sont envoyés à chaque étape clé du processus. La configuration repose sur le serveur SMTP défini dans les variables d'environnement (.env). Les événements déclencheurs incluent : la création de compte (envoi du mot de passe temporaire), la validation ou le refus d'un sujet, l'affectation d'un encadrant, la planification d'une soutenance, et la publication de la note finale.</p>
+
+<h2>7.2 Canal WebSocket (temps réel)</h2>
+<p>Django Channels, couplé à Redis comme couche de messagerie, permet d'envoyer des notifications push en temps réel aux utilisateurs connectés. Un consumer WebSocket écoute sur l'URL <code>ws/notifications/</code> et distribue les messages aux destinataires concernés selon leur identifiant.</p>
+
+<table>
+  <thead><tr><th>Événement</th><th>Destinataire(s)</th><th>Canal(aux)</th></tr></thead>
+  <tbody>
+    <tr><td>Création de compte</td><td>Nouvel utilisateur</td><td>Email</td></tr>
+    <tr><td>Sujet validé</td><td>Étudiant</td><td>Email + WebSocket</td></tr>
+    <tr><td>Sujet refusé</td><td>Proposeur</td><td>Email</td></tr>
+    <tr><td>Encadrant affecté</td><td>Encadrant + Étudiant</td><td>Email + WebSocket</td></tr>
+    <tr><td>Livrable déposé</td><td>Encadrant</td><td>WebSocket</td></tr>
+    <tr><td>Livrable validé</td><td>Étudiant</td><td>Email + WebSocket</td></tr>
+    <tr><td>Soutenance planifiée</td><td>Étudiant + Jury + Encadrant</td><td>Email + WebSocket</td></tr>
+    <tr><td>Note finale publiée</td><td>Étudiant</td><td>Email</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 8 — DOCUMENTS GÉNÉRÉS
+══════════════════════════════════════════════════════════════════ -->
+<h1>8. Documents Officiels Générés</h1>
+<p>L'application génère automatiquement des documents PDF à différentes étapes du processus, grâce à la bibliothèque ReportLab.</p>
+
+<table>
+  <thead><tr><th>Document</th><th>Déclenché par</th><th>Destinataire</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">Planning des soutenances</td><td>Coordinateur</td><td>Tous les acteurs concernés</td></tr>
+    <tr><td class="bold">PV de soutenance</td><td>Coordinateur / Scolarité</td><td>Archives institutionnelles</td></tr>
+    <tr><td class="bold">Relevé de notes</td><td>Scolarité</td><td>Étudiant</td></tr>
+    <tr><td class="bold">Attestation de réussite</td><td>Scolarité</td><td>Étudiant</td></tr>
+    <tr><td class="bold">Export statistiques global</td><td>Admin / Coordinateur</td><td>Direction de l'établissement</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 9 — PLAN DE DÉVELOPPEMENT
+══════════════════════════════════════════════════════════════════ -->
+<h1>9. Plan de Développement</h1>
+<p>Le développement est structuré en sept phases étalées sur environ trente jours.</p>
+
+<table>
+  <thead><tr><th>Phase</th><th>Domaine</th><th>Durée</th><th>Objectif principal</th></tr></thead>
+  <tbody>
+    <tr><td class="bold">0</td><td>Setup &amp; Configuration</td><td>Jour 1</td><td>Environnement, PostgreSQL, premier commit Git</td></tr>
+    <tr><td class="bold">1</td><td>Authentification JWT</td><td>Jours 2–4</td><td>CustomUser, 7 rôles, RBAC, JWT, tests</td></tr>
+    <tr><td class="bold">2</td><td>Gestion des Sujets</td><td>Jours 5–7</td><td>CRUD, workflow validation/refus, filtres</td></tr>
+    <tr><td class="bold">3</td><td>PFE &amp; Livrables</td><td>Jours 8–12</td><td>Upload, signals auto, détection plagiat</td></tr>
+    <tr><td class="bold">4</td><td>Soutenances &amp; Notes</td><td>Jours 13–17</td><td>Planification, jury, calcul note finale, PDF</td></tr>
+    <tr><td class="bold">5</td><td>Notifications</td><td>Jour 18</td><td>Email SMTP + WebSocket Channels/Redis</td></tr>
+    <tr><td class="bold">6</td><td>Statistiques &amp; Exports</td><td>Jour 19</td><td>Agrégations ORM, exports CSV/Excel/PDF</td></tr>
+    <tr><td class="bold">7</td><td>Finalisation</td><td>Jour 20</td><td>Swagger, sécurité renforcée, couverture tests ≥ 70 %</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CHAPITRE 10 — CONCLUSION
+══════════════════════════════════════════════════════════════════ -->
+<h1>10. Conclusion et Perspectives</h1>
+
+<h2>10.1 Bilan</h2>
+<p>Le projet GestionPFE constitue une réponse concrète aux défis de gestion administrative des projets de fin d'études à l'ISCAE. L'adoption d'une architecture Domain-Driven Design assure une séparation claire des responsabilités et facilite la maintenabilité du code. La combinaison de Django REST Framework, SimpleJWT, Django Channels et PostgreSQL offre une base robuste, sécurisée et scalable.</p>
+<p>Le système couvre l'intégralité du cycle de vie d'un PFE : de la proposition de sujet à l'archivage, en passant par la validation, le suivi des livrables, la planification des soutenances et la génération des documents officiels. La logique métier est entièrement centralisée dans les couches de service, les vues restant légères et testables.</p>
+
+<h2>10.2 Perspectives d'évolution</h2>
+<ul>
+  <li>Développement d'une interface frontend (React.js ou Vue.js) consommant l'API REST.</li>
+  <li>Intégration d'un moteur de détection de plagiat avancé (ex. API Copyleaks ou Turnitin).</li>
+  <li>Déploiement en production sur une infrastructure cloud (ex. Railway, AWS) avec pipeline CI/CD.</li>
+  <li>Ajout d'un module de messagerie interne entre étudiants et encadrants.</li>
+  <li>Internationalisation (arabe / français / anglais) de l'interface utilisateur.</li>
+  <li>Application mobile (React Native / Flutter) pour les notifications et le suivi en temps réel.</li>
+</ul>
+
+<br><br>
+<hr style="border: 1px solid #2E74B5; margin-top: 40px;">
+<p style="text-align: center; font-style: italic; color: #888; font-size: 10pt; margin-top: 8px;">
+  Fin du rapport — GestionPFE — ISCAE 2025–2026
+</p>
+
+</body>
+</html>

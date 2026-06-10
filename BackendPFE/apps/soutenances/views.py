@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from core.permissions import IsCoordinateur, IsJury
+from core.permissions import IsCoordinateur
 from core.exceptions import success_response
 from .models import Soutenance
 from .serializers import (
@@ -12,9 +12,10 @@ from .serializers import (
 )
 from .filters import SoutenanceFilter
 from .services import (
-    planifier_soutenance, affecter_jury,
-    soumettre_note, calculer_note_finale,
+    planifier_soutenance, affecter_jury, autoriser_soutenance,
+    soumettre_note, calculer_note_finale, cloturer_session,
     generer_pv_pdf, generer_releve_notes, generer_attestation, generer_planning_pdf,
+    generer_convocation_pdf,
 )
 
 
@@ -39,10 +40,8 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
     def get_permissions(self):
-        if self.action in ('planifier', 'affecter_jury', 'calculer_finale'):
+        if self.action in ('planifier', 'affecter_jury', 'calculer_finale', 'autoriser', 'cloturer_session'):
             return [IsCoordinateur()]
-        if self.action in ('noter', 'pv_pdf'):
-            return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     @action(detail=False, methods=['post'])
@@ -83,6 +82,14 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         return success_response(data=NoteSerializer(note).data)
 
     @action(detail=True, methods=['post'])
+    def autoriser(self, request, pk=None):
+        soutenance = autoriser_soutenance(self.get_object())
+        return success_response(
+            data=SoutenanceSerializer(soutenance).data,
+            message='Soutenance autorisée. Notifications envoyées.'
+        )
+
+    @action(detail=True, methods=['post'])
     def calculer_finale(self, request, pk=None):
         soutenance = calculer_note_finale(self.get_object())
         return success_response(data=SoutenanceSerializer(soutenance).data)
@@ -115,3 +122,22 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         response = HttpResponse(buf, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="planning_soutenances.pdf"'
         return response
+
+    @action(detail=True, methods=['get'])
+    def convocation_pdf(self, request, pk=None):
+        buf = generer_convocation_pdf(self.get_object())
+        response = HttpResponse(buf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="convocation_soutenance_{pk}.pdf"'
+        return response
+
+    @action(detail=False, methods=['post'], url_path='cloturer-session')
+    def cloturer_session(self, request):
+        annee_id = request.data.get('annee_academique_id')
+        if not annee_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Le champ 'annee_academique_id' est obligatoire.")
+        resultats = cloturer_session(annee_id)
+        return success_response(
+            data=resultats,
+            message=f"Session clôturée. {len(resultats)} PFE traité(s).",
+        )

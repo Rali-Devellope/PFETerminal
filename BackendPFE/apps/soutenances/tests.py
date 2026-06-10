@@ -7,7 +7,7 @@ from rest_framework import status
 
 from apps.authentication.models import CustomUser
 from apps.sujets.models import Sujet
-from apps.pfe.models import PFE
+from apps.pfe.models import PFE, AnneeAcademique
 from .models import Soutenance, Note
 
 NO_THROTTLE = override_settings(
@@ -22,13 +22,21 @@ def make_user(email, role, password='Pass1234!'):
 
 
 def make_pfe(etudiant, encadrant):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from apps.pfe.models import Livrable
     sujet = Sujet.objects.create(
         titre='Test Sujet', description='Desc', origine='academique',
         filiere='Finance', annee=2025, statut='VALIDE',
         propose_par=encadrant, etudiant_cible=etudiant,
         encadrant=encadrant,
     )
-    return PFE.objects.get(sujet=sujet)
+    pfe = PFE.objects.get(sujet=sujet)
+    Livrable.objects.create(
+        pfe=pfe, type='rapport',
+        fichier=SimpleUploadedFile('rapport.pdf', b'%PDF-1.4', content_type='application/pdf'),
+        statut='VALIDE',
+    )
+    return pfe
 
 
 def get_token(client, email, password='Pass1234!'):
@@ -219,4 +227,142 @@ class NoterSoutenanceTests(TestCase):
         self.soutenance.refresh_from_db()
         self.assertEqual(self.soutenance.note_finale, 15.0)
         self.assertEqual(self.soutenance.statut, 'TERMINEE')
+
+
+# ─── A3 — Autorisation soutenance + convocation PDF ───────────────────────────
+
+@NO_THROTTLE
+class AutoriserSoutenanceTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.coordinateur = make_user('coord@iscae.mr', 'coordinateur')
+        self.etudiant     = make_user('etu@iscae.mr',   'etudiant')
+        self.encadrant    = make_user('enc@iscae.mr',   'encadrant_acad')
+        self.jury1 = make_user('j1@iscae.mr', 'jury')
+        self.jury2 = make_user('j2@iscae.mr', 'jury')
+        pfe = make_pfe(self.etudiant, self.encadrant)
+        self.soutenance = Soutenance.objects.create(
+            pfe=pfe,
+            date=timezone.now() + timedelta(days=10),
+            salle='Salle C',
+            duree=30,
+            statut='EN_ATTENTE_AUTORISATION',
+        )
+
+    def _auth(self, email):
+        token = get_token(self.client, email)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_autoriser_sans_jury_echoue(self):
+        self._auth('coord@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-autoriser', args=[self.soutenance.pk]),
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_autoriser_avec_jury_ok(self):
+        self.soutenance.membres_jury.set([self.jury1, self.jury2])
+        self._auth('coord@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-autoriser', args=[self.soutenance.pk]),
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.soutenance.refresh_from_db()
+        self.assertEqual(self.soutenance.statut, 'PLANIFIEE')
+
+    def test_etudiant_ne_peut_pas_autoriser(self):
+        self.soutenance.membres_jury.set([self.jury1, self.jury2])
+        self._auth('etu@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-autoriser', args=[self.soutenance.pk]),
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_autoriser_deux_fois_echoue(self):
+        self.soutenance.membres_jury.set([self.jury1, self.jury2])
+        self._auth('coord@iscae.mr')
+        self.client.post(reverse('soutenance-autoriser', args=[self.soutenance.pk]))
+        r = self.client.post(reverse('soutenance-autoriser', args=[self.soutenance.pk]))
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+# ─── A4 — Délibération et mentions ────────────────────────────────────────────
+
+@NO_THROTTLE
+class CloturerSessionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.coordinateur = make_user('coord@iscae.mr', 'coordinateur')
+        self.etudiant     = make_user('etu@iscae.mr',   'etudiant')
+        self.encadrant    = make_user('enc@iscae.mr',   'encadrant_acad')
+        self.annee = AnneeAcademique.objects.create(
+            libelle='2024-2025', date_debut='2024-09-01', date_fin='2025-07-31', active=True
+        )
+        pfe = make_pfe(self.etudiant, self.encadrant)
+        self.soutenance = Soutenance.objects.create(
+            pfe=pfe,
+            date=timezone.now() - timedelta(days=1),
+            salle='Salle A',
+            duree=30,
+            statut='TERMINEE',
+            note_finale=16.5,
+            annee_academique=self.annee,
+        )
+
+    def _auth(self, email):
+        token = get_token(self.client, email)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_cloturer_session_mention_tres_bien(self):
+        self._auth('coord@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-cloturer-session'),
+            {'annee_academique_id': self.annee.pk},
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        pfe = self.soutenance.pfe
+        pfe.refresh_from_db()
+        self.assertEqual(pfe.mention, 'tres_bien')
+        self.assertEqual(pfe.statut, 'VALIDE')
+        self.annee.refresh_from_db()
+        self.assertFalse(self.annee.active)
+
+    def test_cloturer_session_ajourne(self):
+        self.soutenance.note_finale = 8.0
+        self.soutenance.save()
+        self._auth('coord@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-cloturer-session'),
+            {'annee_academique_id': self.annee.pk},
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        pfe = self.soutenance.pfe
+        pfe.refresh_from_db()
+        self.assertEqual(pfe.mention, 'ajourne')
+        self.assertEqual(pfe.statut, 'REFUSE')
+
+    def test_cloturer_avec_soutenance_non_terminee_echoue(self):
+        self.soutenance.statut = 'PLANIFIEE'
+        self.soutenance.save()
+        self._auth('coord@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-cloturer-session'),
+            {'annee_academique_id': self.annee.pk},
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_etudiant_ne_peut_pas_cloturer(self):
+        self._auth('etu@iscae.mr')
+        r = self.client.post(
+            reverse('soutenance-cloturer-session'),
+            {'annee_academique_id': self.annee.pk},
+            format='json',
+        )
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)
 
