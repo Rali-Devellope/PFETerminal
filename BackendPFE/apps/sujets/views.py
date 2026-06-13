@@ -46,7 +46,8 @@ class SujetViewSet(viewsets.ModelViewSet):
         return SujetSerializer
 
     def perform_create(self, serializer):
-        serializer.save(propose_par=self.request.user)
+        from apps.pfe.services import get_annee_active
+        serializer.save(propose_par=self.request.user, annee_academique=get_annee_active())
 
     @action(detail=True, methods=['post'])
     def choisir(self, request, pk=None):

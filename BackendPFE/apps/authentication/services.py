@@ -6,13 +6,14 @@ from core.utils import generate_temp_password
 from .models import CustomUser
 
 
-def create_user_by_admin(email, nom, prenom, role, password=None):
+def create_user_by_admin(email, nom, prenom, role, password=None, filiere='', telephone='', matricule=''):
     if CustomUser.objects.filter(email=email).exists():
         raise ValidationError("Un compte avec cet email existe déjà")
 
     temp_password = password or generate_temp_password()
     user = CustomUser.objects.create_user(
         email=email, nom=nom, prenom=prenom, role=role, password=temp_password,
+        filiere=filiere, telephone=telephone, matricule=matricule,
     )
     _send_account_created_email(user, temp_password)
     return user

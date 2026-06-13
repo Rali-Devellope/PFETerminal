@@ -12,6 +12,7 @@ class Notification(models.Model):
         ('livrable_refuse',       'Livrable refusé'),
         ('soutenance_planifiee',  'Soutenance planifiée'),
         ('note_publiee',          'Note publiée'),
+        ('deadline',              'Deadline livrable'),
     ]
     destinataire = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, related_name='notifications'

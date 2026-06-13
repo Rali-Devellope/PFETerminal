@@ -34,14 +34,91 @@ def planifier_soutenance(pfe_id, date, salle, duree, coordinateur):
             f"Condition non remplie : le score de plagiat ({pfe.score_plagiat}%) dépasse le seuil autorisé ({SEUIL_PLAGIAT}%)."
         )
 
+    if pfe.annee_academique and pfe.annee_academique.date_limite_soutenance:
+        limite = pfe.annee_academique.date_limite_soutenance
+        if date.date() > limite:
+            raise ValidationError(
+                f"La date de soutenance ({date.strftime('%d/%m/%Y')}) dépasse la date limite "
+                f"des soutenances de l'année {pfe.annee_academique.libelle} ({limite.strftime('%d/%m/%Y')})."
+            )
+
     soutenance = Soutenance.objects.create(
         pfe=pfe,
         date=date,
         salle=salle,
         duree=duree,
         statut='EN_ATTENTE_AUTORISATION',
+        annee_academique=pfe.annee_academique,
     )
     return soutenance
+
+
+def planifier_session_filiere(filiere, date_debut, salle, duree, coordinateur):
+    from datetime import timedelta
+    from apps.pfe.models import PFE
+
+    pfe_qs = PFE.objects.filter(
+        filiere=filiere,
+        statut='EN_COURS',
+        livrables__type='rapport',
+        livrables__statut='VALIDE',
+        score_plagiat__lte=30,
+    ).exclude(soutenance__isnull=False).distinct()
+
+    if not pfe_qs.exists():
+        raise ValidationError(
+            f"Aucun PFE éligible trouvé pour la filière « {filiere} ». "
+            "Vérifiez que les rapports sont validés et qu'aucune soutenance n'est déjà planifiée."
+        )
+
+    if date_debut <= timezone.now():
+        raise ValidationError("La date de début doit être dans le futur.")
+
+    annee_ref = pfe_qs.first().annee_academique
+    if annee_ref and annee_ref.date_limite_soutenance:
+        derniere_date = date_debut + timedelta(minutes=duree * (pfe_qs.count() - 1))
+        if derniere_date.date() > annee_ref.date_limite_soutenance:
+            raise ValidationError(
+                f"La session dépasse la date limite des soutenances "
+                f"({annee_ref.date_limite_soutenance.strftime('%d/%m/%Y')}). "
+                f"Choisissez une date de début plus tôt ou réduisez la durée."
+            )
+
+    soutenances = []
+    current_time = date_debut
+    for pfe in pfe_qs.order_by('etudiant__nom'):
+        s = Soutenance.objects.create(
+            pfe=pfe,
+            date=current_time,
+            salle=salle,
+            duree=duree,
+            statut='EN_ATTENTE_AUTORISATION',
+            annee_academique=pfe.annee_academique,
+        )
+        soutenances.append(s)
+        current_time += timedelta(minutes=duree)
+
+    return soutenances
+
+
+def preview_session_filiere(filiere):
+    from apps.pfe.models import PFE
+    pfe_qs = PFE.objects.filter(
+        filiere=filiere,
+        statut='EN_COURS',
+        livrables__type='rapport',
+        livrables__statut='VALIDE',
+        score_plagiat__lte=30,
+    ).exclude(soutenance__isnull=False).distinct().order_by('etudiant__nom')
+
+    return [
+        {
+            'pfe_id': p.pk,
+            'etudiant': f"{p.etudiant.prenom} {p.etudiant.nom}",
+            'titre': p.titre,
+        }
+        for p in pfe_qs
+    ]
 
 
 def autoriser_soutenance(soutenance):
@@ -57,13 +134,17 @@ def autoriser_soutenance(soutenance):
     return soutenance
 
 
-def affecter_jury(soutenance, jury_ids):
+def affecter_jury(soutenance, jury_ids, president_id=None):
     membres = CustomUser.objects.filter(pk__in=jury_ids, role='jury')
     if membres.count() != len(jury_ids):
         raise ValidationError("Un ou plusieurs membres du jury sont invalides.")
     if membres.count() < 2:
         raise ValidationError("Il faut au moins 2 membres dans le jury.")
     soutenance.membres_jury.set(membres)
+    if president_id is not None:
+        if not membres.filter(pk=president_id).exists():
+            raise ValidationError("Le président doit être l'un des membres du jury.")
+        soutenance.president_jury = membres.get(pk=president_id)
     soutenance.save()
     return soutenance
 
@@ -74,6 +155,11 @@ def soumettre_note(soutenance, evaluateur, valeur, type_note, commentaire=''):
 
     if type_note == 'jury' and evaluateur not in soutenance.membres_jury.all():
         raise ValidationError("Vous n'êtes pas membre du jury de cette soutenance.")
+
+    if type_note == 'encadrant':
+        encadrants_autorises = [e for e in [soutenance.pfe.encadrant_acad, soutenance.pfe.encadrant_entr] if e]
+        if evaluateur not in encadrants_autorises:
+            raise ValidationError("Vous n'êtes pas l'encadrant de ce PFE.")
 
     note, _ = Note.objects.update_or_create(
         soutenance=soutenance,
@@ -356,7 +442,9 @@ def generer_pv_pdf(soutenance):
             y -= 20
 
         for membre in soutenance.membres_jury.all():
-            c.drawString(80, y, f"- {membre.prenom} {membre.nom}")
+            is_president = soutenance.president_jury_id == membre.pk
+            label = f"- {membre.prenom} {membre.nom}" + (" (Président)" if is_president else "")
+            c.drawString(80, y, label)
             y -= 20
 
         y -= 10

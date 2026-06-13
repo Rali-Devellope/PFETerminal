@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/v1/',        include('apps.soutenances.urls')),
     path('api/v1/',        include('apps.notifications.urls')),
     path('api/v1/',        include('apps.statistiques.urls')),
+    path('api/v1/config/', include('apps.config.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
     path('redoc/',   schema_view.with_ui('redoc',   cache_timeout=0), name='redoc'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

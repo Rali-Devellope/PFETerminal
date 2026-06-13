@@ -221,13 +221,30 @@ class AnneeAcademiqueTests(TestCase):
         self.assertIsNone(r.data['data'])
 
     def test_definir_deadline(self):
+        from django.utils import timezone
+        from datetime import timedelta
         annee = AnneeAcademique.objects.create(
-            libelle='2024-2025', date_debut='2024-09-01', date_fin='2025-07-31'
+            libelle='2026-2027', date_debut='2026-09-01', date_fin='2027-07-31'
         )
-        data = {'annee_id': annee.pk, 'type_livrable': 'rapport', 'date_limite': '2025-05-01T23:59:00Z'}
+        future = (timezone.now() + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        data = {'annee_id': annee.pk, 'type_livrable': 'rapport', 'date_limite': future}
         r = self.client_coord.post(reverse('annee-definir-deadline'), data, format='json')
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertEqual(Deadline.objects.count(), 1)
+
+    def test_deadline_dans_le_passe_echoue(self):
+        annee = AnneeAcademique.objects.create(
+            libelle='2026-2027', date_debut='2026-09-01', date_fin='2027-07-31'
+        )
+        data = {'annee_id': annee.pk, 'type_livrable': 'rapport', 'date_limite': '2020-01-01T00:00:00Z'}
+        r = self.client_coord.post(reverse('annee-definir-deadline'), data, format='json')
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_creer_annee_fin_avant_debut_echoue(self):
+        data = {'libelle': '2027-2026', 'date_debut': '2027-09-01', 'date_fin': '2026-07-31'}
+        r = self.client_coord.post(reverse('annee-creer'), data, format='json')
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     def test_livrable_hors_delai(self):
         from django.utils import timezone

@@ -17,6 +17,9 @@ def creer_pfe_automatiquement(sender, instance, **kwargs):
         return
 
     encadrant = instance.encadrant
+    from .services import get_annee_active
+    annee_active = get_annee_active()
+
     pfe = PFE.objects.create(
         titre=instance.titre,
         filiere=instance.filiere,
@@ -25,6 +28,7 @@ def creer_pfe_automatiquement(sender, instance, **kwargs):
         etudiant=etudiant,
         encadrant_acad=encadrant if encadrant and encadrant.role == 'encadrant_acad' else None,
         encadrant_entr=encadrant if encadrant and encadrant.role == 'encadrant_entr' else None,
+        annee_academique=annee_active,
     )
     try:
         from .services import generer_fiche_inscription

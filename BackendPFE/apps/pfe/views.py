@@ -3,12 +3,12 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from core.permissions import IsCoordinateur, IsEncadrant
+from core.permissions import IsCoordinateur, IsEncadrant, IsAdminOrScolarite, IsAdminOrCoordinateur
 from core.exceptions import success_response
 from django.http import FileResponse
 from .models import PFE, Livrable, AnneeAcademique, Deadline
 from .serializers import (
-    PFESerializer, LivrableSerializer,
+    PFESerializer, LivrableSerializer, LivrableDetailSerializer,
     LivrableUploadSerializer, LivrableNestedUploadSerializer, LivrableActionSerializer,
     AnneeAcademiqueSerializer, AnneeAcademiqueCreateSerializer,
     DeadlineSerializer, DeadlineCreateSerializer, FicheInscriptionSerializer,
@@ -17,6 +17,8 @@ from .filters import PFEFilter, LivrableFilter
 from .services import (
     upload_livrable, valider_livrable, refuser_livrable, archiver_pfe,
     get_annee_active, creer_annee, ouvrir_annee, fermer_annee_active, definir_deadline,
+    supprimer_deadline as _supprimer_deadline,
+    notifier_deadlines_etudiants, get_stats_livrables,
     generer_fiche_inscription, signer_fiche,
 )
 
@@ -42,6 +44,19 @@ class PFEViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action in ('archiver', 'generer_fiche'):
             return [IsCoordinateur()]
         return [IsAuthenticated()]
+
+    @action(detail=True, methods=['patch'], url_path='resume')
+    def mettre_a_jour_resume(self, request, pk=None):
+        pfe = self.get_object()
+        if request.user != pfe.encadrant_acad and request.user != pfe.encadrant_entr and request.user.role not in ('coordinateur', 'admin'):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Seul l'encadrant ou le coordinateur peut modifier le résumé.")
+        resume    = request.data.get('resume',    pfe.resume)
+        mots_cles = request.data.get('mots_cles', pfe.mots_cles)
+        pfe.resume    = resume
+        pfe.mots_cles = mots_cles
+        pfe.save(update_fields=['resume', 'mots_cles', 'updated_at'])
+        return success_response(data=PFESerializer(pfe).data)
 
     @action(detail=False, methods=['get'], url_path='mon-pfe')
     def mon_pfe(self, request):
@@ -106,6 +121,9 @@ class AnneeAcademiqueViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_permissions(self):
         if self.action in ('creer', 'ouvrir', 'fermer'):
+            return [IsAdminOrCoordinateur()]
+        if self.action in ('set_date_limite_soutenance', 'definir_deadline',
+                           'supprimer_deadline', 'notifier_deadlines', 'stats_livrables'):
             return [IsCoordinateur()]
         return [IsAuthenticated()]
 
@@ -118,6 +136,7 @@ class AnneeAcademiqueViewSet(viewsets.ReadOnlyModelViewSet):
             date_debut=ser.validated_data['date_debut'],
             date_fin=ser.validated_data['date_fin'],
             coordinateur=request.user,
+            date_limite_soutenance=ser.validated_data.get('date_limite_soutenance'),
         )
         return success_response(data=AnneeAcademiqueSerializer(annee).data, status_code=status.HTTP_201_CREATED)
 
@@ -142,6 +161,28 @@ class AnneeAcademiqueViewSet(viewsets.ReadOnlyModelViewSet):
         qs = Deadline.objects.filter(annee_academique=annee)
         return success_response(data=DeadlineSerializer(qs, many=True).data)
 
+    @action(detail=True, methods=['patch'], url_path='date-limite-soutenance')
+    def set_date_limite_soutenance(self, request, pk=None):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        import datetime
+        annee = self.get_object()
+        raw = request.data.get('date_limite_soutenance')
+        if not raw:
+            annee.date_limite_soutenance = None
+            annee.save(update_fields=['date_limite_soutenance'])
+            return success_response(data=AnneeAcademiqueSerializer(annee).data, message="Date limite supprimée.")
+        try:
+            date_val = datetime.date.fromisoformat(str(raw))
+        except ValueError:
+            raise DRFValidationError("Format de date invalide. Utilisez YYYY-MM-DD.")
+        if date_val < annee.date_debut:
+            raise DRFValidationError("La date limite ne peut pas être avant le début de l'année.")
+        if date_val > annee.date_fin:
+            raise DRFValidationError("La date limite ne peut pas dépasser la fin de l'année.")
+        annee.date_limite_soutenance = date_val
+        annee.save(update_fields=['date_limite_soutenance'])
+        return success_response(data=AnneeAcademiqueSerializer(annee).data, message="Date limite mise à jour.")
+
     @action(detail=False, methods=['post'], url_path='definir-deadline')
     def definir_deadline(self, request):
         ser = DeadlineCreateSerializer(data=request.data)
@@ -153,6 +194,28 @@ class AnneeAcademiqueViewSet(viewsets.ReadOnlyModelViewSet):
             coordinateur=request.user,
         )
         return success_response(data=DeadlineSerializer(deadline).data)
+
+    @action(detail=False, methods=['post'], url_path='supprimer-deadline')
+    def supprimer_deadline(self, request):
+        annee_id      = request.data.get('annee_id')
+        type_livrable = request.data.get('type_livrable')
+        if not annee_id or not type_livrable:
+            return success_response(
+                message="annee_id et type_livrable sont requis.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        _supprimer_deadline(annee_id, type_livrable, request.user)
+        return success_response(message="Deadline supprimée.")
+
+    @action(detail=True, methods=['post'], url_path='notifier-deadlines')
+    def notifier_deadlines(self, request, pk=None):
+        count = notifier_deadlines_etudiants(pk, request.user)
+        return success_response(message=f"{count} étudiant(s) notifié(s).")
+
+    @action(detail=True, methods=['get'], url_path='stats-livrables')
+    def stats_livrables(self, request, pk=None):
+        data = get_stats_livrables(pk)
+        return success_response(data=data)
 
 
 class BibliothequeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -200,7 +263,7 @@ class LivrableViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return LivrableUploadSerializer
-        return LivrableSerializer
+        return LivrableDetailSerializer
 
     def get_permissions(self):
         if self.action in ('valider', 'refuser'):

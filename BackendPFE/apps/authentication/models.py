@@ -38,6 +38,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff       = models.BooleanField(default=False)
     is_first_login = models.BooleanField(default=True)
     max_etudiants  = models.PositiveIntegerField(default=5)
+    filiere        = models.CharField(max_length=100, blank=True)
+    telephone      = models.CharField(max_length=20, blank=True)
+    matricule      = models.CharField(max_length=50, blank=True)
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)
 

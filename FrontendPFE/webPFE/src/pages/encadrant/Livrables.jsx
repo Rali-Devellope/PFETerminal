@@ -141,7 +141,19 @@ export default function EncadrantLivrables() {
                     <span className="text-sm font-semibold" style={{ color: '#1a2744' }}>
                       {l.type_livrable_display ?? l.type_livrable}
                     </span>
+                    {l.version > 1 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#fff7ed', color: '#c2410c' }}>
+                        v{l.version}
+                      </span>
+                    )}
                     <Badge statut={l.statut} />
+                    {l.hors_delai && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#fef9ec', color: '#d97706' }}>
+                        Hors délai
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 mb-0.5">
                     <span className="font-medium">{t('encadrant_livrables.student_label')} :</span>{' '}

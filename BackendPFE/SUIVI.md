@@ -825,5 +825,88 @@ GET /api/v1/bibliotheque/?search=gestion
 | B4 Dashboard encadrant | ✅ |
 
 ```
-Ran 65 tests  →  OK (65/65)
+Ran 97 tests  →  OK (97/97)
 ```
+
+**+32 nouveaux tests couvrant A1 à B4 :**
+
+| Fichier | Nouvelles classes | Tests |
+|---|---|---|
+| `pfe/tests.py` | `AnneeAcademiqueTests`, `FicheInscriptionTests`, `BibliothequeTests` | A1+A2, B1, B2 |
+| `sujets/tests.py` | `LimiteEncadrantTests` | A5 |
+| `soutenances/tests.py` | `AutoriserSoutenanceTests`, `CloturerSessionTests` | A3, A4 |
+| `statistiques/tests.py` | `DashboardCoordinateurTests`, `DashboardEncadrantTests` | B3, B4 |
+
+---
+
+## Améliorations compétitives — Session 2026-06-12
+
+### Profil utilisateur complet (Option A)
+
+**Problème corrigé :** Le champ filière dans le formulaire admin était affiché mais jamais sauvegardé (données silencieusement perdues côté backend).
+
+**Champs ajoutés à `CustomUser` :**
+
+| Champ | Type | Rôles concernés |
+|---|---|---|
+| `filiere` | `CharField(blank=True)` | Étudiant |
+| `telephone` | `CharField(blank=True)` | Tous |
+| `matricule` | `CharField(blank=True)` | Étudiant |
+
+**Fichiers modifiés :**
+
+| Fichier | Changement |
+|---|---|
+| `apps/authentication/models.py` | +3 champs |
+| `apps/authentication/migrations/0003_customuser_filiere_telephone_matricule.py` | Migration |
+| `apps/authentication/serializers.py` | `UserSerializer`, `CreateUserSerializer`, `UpdateUserSerializer` : +3 champs |
+| `apps/authentication/services.py` | `create_user_by_admin()` : +3 paramètres optionnels |
+| `FrontendPFE/src/pages/admin/Users.jsx` | Formulaire créa/édition : filière sauvegardée, +téléphone, +matricule |
+| `FrontendPFE/src/pages/auth/Profile.jsx` | Page profil : +téléphone (tous), +filière+matricule (étudiant) |
+| `i18n/locales/fr.json` + `ar.json` | Clés `telephone`, `matricule` ajoutées |
+
+---
+
+## App `apps/config/` — Filières dynamiques (2026-06-13)
+
+### Objectif
+Remplacer les listes de filières hardcodées par une table en base gérée par l'admin.
+
+### Modèle `Filiere`
+```python
+class Filiere(models.Model):
+    libelle    = CharField(max_length=100, unique=True)
+    code       = CharField(max_length=10, blank=True)   # ex: FIN, CPT
+    active     = BooleanField(default=True)
+    created_at = DateTimeField(auto_now_add=True)
+```
+
+**Migration 0002** : insère les 5 filières initiales (Finance/FIN, Comptabilité/CPT, Audit/AUD, Management/MGT, Informatique/INF).
+
+### Endpoint
+| Méthode | URL | Permission |
+|---|---|---|
+| GET | `/api/v1/config/filieres/` | IsAuthenticated |
+| GET | `/api/v1/config/filieres/?active=true` | IsAuthenticated |
+| POST | `/api/v1/config/filieres/` | IsAdmin |
+| PATCH | `/api/v1/config/filieres/{id}/` | IsAdmin |
+| DELETE | `/api/v1/config/filieres/{id}/` | IsAdmin |
+
+### Fichiers créés/modifiés
+
+| Fichier | Rôle |
+|---|---|
+| `apps/config/models.py` | Modèle `Filiere` |
+| `apps/config/serializers.py` | `FiliereSerializer` |
+| `apps/config/views.py` | `FiliereViewSet` |
+| `apps/config/urls.py` | Router `/config/filieres/` |
+| `apps/config/apps.py` | Config app |
+| `apps/config/admin.py` | Interface Django admin |
+| `apps/config/migrations/0001_initial.py` | Création table |
+| `apps/config/migrations/0002_data_filieres_initiales.py` | Données initiales |
+| `config/settings/base.py` | `apps.config` ajouté à INSTALLED_APPS |
+| `config/urls.py` | `/api/v1/config/` ajouté |
+| `FrontendPFE/src/api/config.js` | `getFilieres`, `createFiliere`, `updateFiliere`, `deleteFiliere` |
+| `FrontendPFE/src/hooks/useFilieres.js` | Hook partagé `useFilieres()` |
+| `FrontendPFE/src/pages/admin/Users.jsx` | Section gestion filières (CRUD) + selects dynamiques |
+| `FrontendPFE/src/pages/auth/Profile.jsx` | Select filière dynamique |

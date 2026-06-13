@@ -8,6 +8,7 @@ from rest_framework import status
 from apps.authentication.models import CustomUser
 from apps.sujets.models import Sujet
 from apps.pfe.models import PFE, AnneeAcademique
+
 from .models import Soutenance, Note
 
 NO_THROTTLE = override_settings(
@@ -102,6 +103,7 @@ class PlanifierSoutenanceTests(TestCase):
         }
         r = self.client.post(reverse('soutenance-planifier'), data, format='json')
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 
 @NO_THROTTLE

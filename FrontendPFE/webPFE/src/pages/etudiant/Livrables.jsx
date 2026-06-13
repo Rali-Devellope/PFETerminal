@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
-import { getMonPFE, getLivrables, deposerLivrable } from '../../api/pfe'
+import { getMonPFE, getLivrables, deposerLivrable, getAnneeActive, getDeadlines } from '../../api/pfe'
 
 function FileIcon() {
   return (
@@ -51,7 +51,17 @@ export default function EtudiantLivrables() {
     enabled: !!pfeId,
   })
 
+  const { data: anneeRes } = useQuery({ queryKey: ['annee-active'], queryFn: getAnneeActive })
+  const anneeActive = anneeRes?.data?.data ?? null
+
+  const { data: deadlineRes } = useQuery({
+    queryKey: ['deadlines', anneeActive?.id],
+    queryFn: () => getDeadlines(anneeActive.id),
+    enabled: !!anneeActive?.id,
+  })
+
   const livrables = livrRes?.data?.data ?? livrRes?.data?.results ?? []
+  const deadlines = deadlineRes?.data?.data ?? []
 
   const mutation = useMutation({
     mutationFn: (fd) => deposerLivrable(pfeId, fd),
@@ -92,6 +102,47 @@ export default function EtudiantLivrables() {
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>{t('livrables.page_title')}</h1>
         <p className="text-sm text-gray-500 mt-1">{t('livrables.page_sub')}</p>
       </div>
+
+      {/* Deadlines */}
+      {deadlines.length > 0 && (
+        <div className="mb-5 p-4 rounded-2xl" style={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <svg width="14" height="14" fill="none" stroke="#d97706" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span className="text-xs font-bold" style={{ color: '#92400e' }}>Deadlines de dépôt</span>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-2">
+            {deadlines.map((d) => {
+              const dt = new Date(d.date_limite)
+              const now = new Date()
+              const diff = Math.ceil((dt - now) / (1000 * 60 * 60 * 24))
+              const isPast   = diff < 0
+              const isUrgent = diff >= 0 && diff <= 7
+              const color = isPast ? '#6b7280' : isUrgent ? '#b91c1c' : '#1a2744'
+              const bg    = isPast ? '#f9fafb' : isUrgent ? '#fef2f2' : '#f0fdf4'
+              return (
+                <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-xl"
+                     style={{ backgroundColor: bg }}>
+                  <div>
+                    <p className="text-xs font-semibold capitalize" style={{ color }}>
+                      {d.type_livrable_display ?? d.type_livrable}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                      {' à '}
+                      {dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold" style={{ color }}>
+                    {isPast ? 'Passée' : diff === 0 ? "Auj." : `J-${diff}`}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card title={t('livrables.form_title')}
@@ -247,11 +298,27 @@ export default function EtudiantLivrables() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-semibold capitalize" style={{ color: '#1a2744' }}>{l.type_livrable}</span>
+                      <span className="text-xs font-semibold capitalize" style={{ color: '#1a2744' }}>
+                        {l.type_livrable_display ?? l.type_livrable}
+                      </span>
                       <Badge statut={l.statut} />
+                      {l.version > 1 && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                              style={{ backgroundColor: '#f0f9ff', color: '#0284c7' }}>
+                          v{l.version}
+                        </span>
+                      )}
+                      {l.hors_delai && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                              style={{ backgroundColor: '#fff7ed', color: '#c2410c' }}>
+                          hors délai
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-gray-400">
                       {new Date(l.date_depot).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {' à '}
+                      {new Date(l.date_depot).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     {l.remarques && l.statut === 'REFUSE' && (
                       <p className="text-xs mt-1 font-medium" style={{ color: '#b91c1c' }}>
@@ -278,18 +345,18 @@ export default function EtudiantLivrables() {
                       Redéposer
                     </button>
                   )}
-                {l.fichier && (
-                  <a href={l.fichier} target="_blank" rel="noreferrer"
-                     className="ml-3 flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex-shrink-0"
-                     style={{ backgroundColor: '#f0fdf4', color: '#15803d' }}>
-                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    {t('livrables.dl')}
-                  </a>
-                )}
+                  {l.fichier && (
+                    <a href={l.fichier} target="_blank" rel="noreferrer"
+                       className="ml-3 flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex-shrink-0"
+                       style={{ backgroundColor: '#f0fdf4', color: '#15803d' }}>
+                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      {t('livrables.dl')}
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

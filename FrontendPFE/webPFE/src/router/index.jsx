@@ -13,6 +13,7 @@ import EtudiantSoutenance from '../pages/etudiant/Soutenance'
 import CoordinateurDashboard from '../pages/coordinateur/Dashboard'
 import CoordinateurSujets from '../pages/coordinateur/Sujets'
 import CoordinateurSoutenances from '../pages/coordinateur/Soutenances'
+import CoordinateurDeadlines from '../pages/coordinateur/Deadlines'
 
 import EncadrantDashboard from '../pages/encadrant/Dashboard'
 import EncadrantSujets from '../pages/encadrant/Sujets'
@@ -23,6 +24,10 @@ import JuryDashboard from '../pages/jury/Dashboard'
 
 import AdminUsers from '../pages/admin/Users'
 import ScolariteDashboard from '../pages/scolarite/Dashboard'
+import ScolariteAnnees from '../pages/scolarite/Annees'
+import ScolariteEtudiants from '../pages/scolarite/Etudiants'
+import ScolariteArchivage from '../pages/scolarite/Archivage'
+import ScolariteClassement from '../pages/scolarite/Classement'
 
 import Stats from '../pages/stats/Stats'
 import Notifications from '../pages/notifications/Notifications'
@@ -57,6 +62,10 @@ const router = createBrowserRouter([
     path: '/coordinateur/soutenances',
     element: guard(['coordinateur'], <CoordinateurSoutenances />),
   },
+  {
+    path: '/coordinateur/deadlines',
+    element: guard(['coordinateur'], <CoordinateurDeadlines />),
+  },
 
   {
     path: '/encadrant',
@@ -81,10 +90,11 @@ const router = createBrowserRouter([
     path: '/admin',
     element: guard(['admin'], <AdminUsers />),
   },
-  {
-    path: '/scolarite',
-    element: guard(['scolarite'], <ScolariteDashboard />),
-  },
+  { path: '/scolarite',             element: guard(['scolarite'], <ScolariteDashboard />) },
+  { path: '/scolarite/annees',      element: guard(['scolarite', 'admin'], <ScolariteAnnees />) },
+  { path: '/scolarite/etudiants',   element: guard(['scolarite', 'admin'], <ScolariteEtudiants />) },
+  { path: '/scolarite/archivage',   element: guard(['scolarite'], <ScolariteArchivage />) },
+  { path: '/scolarite/classement',  element: guard(['scolarite', 'admin', 'coordinateur'], <ScolariteClassement />) },
 
   {
     path: '/stats',

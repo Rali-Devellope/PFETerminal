@@ -6,15 +6,18 @@ import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getSujets, createSujet } from '../../api/sujets'
 import { getEtudiants } from '../../api/auth'
-
-const INIT_FORM = {
-  titre: '', description: '', origine: 'academique',
-  filiere: '', annee: new Date().getFullYear(), etudiant_cible: '', confidentiel: false,
-}
+import { useFilieres } from '../../hooks/useFilieres'
+import { useAuthStore } from '../../store/authStore'
 
 export default function EncadrantSujets() {
   const { t } = useTranslation()
+  const { user } = useAuthStore()
   const qc = useQueryClient()
+  const initOrigine = user?.role === 'encadrant_entr' ? 'entreprise' : 'academique'
+  const INIT_FORM = {
+    titre: '', description: '', origine: initOrigine,
+    filiere: '', annee: new Date().getFullYear(), etudiant_cible: '', confidentiel: false,
+  }
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(INIT_FORM)
   const [formError, setFormError] = useState('')
@@ -37,6 +40,7 @@ export default function EncadrantSujets() {
     queryFn: () => getEtudiants(),
     enabled: showForm,
   })
+  const { filieres: filieresData } = useFilieres({ activeOnly: false })
 
   const sujets = sujetsRes?.data?.results ?? sujetsRes?.data?.data ?? []
   const sujetsArr = Array.isArray(sujets) ? sujets : []
@@ -151,9 +155,13 @@ export default function EncadrantSujets() {
             </div>
 
             {field(t('sujet_form.filiere'),
-              <input type="text" value={form.filiere} onChange={(e) => setForm({ ...form, filiere: e.target.value })}
-                placeholder={t('sujet_form.filiere_ph')} className={inputCls} style={inputStyle}
-                onFocus={onFocus} onBlur={onBlur} />
+              <select value={form.filiere} onChange={(e) => setForm({ ...form, filiere: e.target.value })}
+                className={inputCls} style={inputStyle}>
+                <option value="">{t('sujet_form.filiere_ph')}</option>
+                {filieresData.map((f) => (
+                  <option key={f.id} value={f.libelle}>{f.libelle}</option>
+                ))}
+              </select>
             )}
 
             {field(t('sujet_form.annee'),

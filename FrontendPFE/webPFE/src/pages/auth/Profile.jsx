@@ -4,12 +4,20 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { ROLE_DASHBOARDS } from '../../components/ProtectedRoute'
+import { useFilieres } from '../../hooks/useFilieres'
 
 export default function Profile() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, setAuth, accessToken, refreshToken } = useAuthStore()
-  const [form, setForm] = useState({ prenom: user?.prenom ?? '', nom: user?.nom ?? '' })
+  const { filieres: filieresData } = useFilieres()
+  const [form, setForm] = useState({
+    prenom:    user?.prenom    ?? '',
+    nom:       user?.nom       ?? '',
+    telephone: user?.telephone ?? '',
+    filiere:   user?.filiere   ?? '',
+    matricule: user?.matricule ?? '',
+  })
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
 
@@ -20,7 +28,7 @@ export default function Profile() {
     },
     onSuccess: ({ data }) => {
       const updated = data?.data ?? data
-      const updatedUser = { ...user, prenom: updated.prenom, nom: updated.nom }
+      const updatedUser = { ...user, prenom: updated.prenom, nom: updated.nom, telephone: updated.telephone, filiere: updated.filiere, matricule: updated.matricule }
       setAuth(updatedUser, accessToken, refreshToken)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -98,6 +106,46 @@ export default function Profile() {
                 className="w-full px-4 py-3 rounded-xl text-sm border outline-none"
                 style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb', color: '#9ca3af' }} />
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1.5 text-gray-600">Téléphone</label>
+              <input type="text" value={form.telephone}
+                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
+                placeholder="+222 XX XX XX XX"
+                className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition"
+                style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
+                onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+            </div>
+
+            {user?.role === 'etudiant' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-600">Filière</label>
+                  <select value={form.filiere}
+                    onChange={(e) => setForm({ ...form, filiere: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition bg-white"
+                    style={{ borderColor: '#e5e7eb', color: form.filiere ? '#1a2744' : '#9ca3af' }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}>
+                    <option value="">Sélectionner une filière</option>
+                    {filieresData.map((f) => (
+                      <option key={f.id} value={f.libelle}>{f.libelle}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-600">Matricule</label>
+                  <input type="text" value={form.matricule}
+                    onChange={(e) => setForm({ ...form, matricule: e.target.value })}
+                    placeholder="ex : 2024-INF-001"
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition"
+                    style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
+                    onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+                </div>
+              </>
+            )}
 
             <button type="submit" disabled={updateMut.isPending}
               className="w-full py-3 rounded-xl text-white text-sm font-bold transition mt-2"

@@ -4,6 +4,21 @@ from apps.sujets.serializers import SujetSerializer
 from .models import PFE, Livrable, AnneeAcademique, Deadline, FicheInscription
 
 
+class PFEMinSerializer(serializers.ModelSerializer):
+    etudiant = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = PFE
+        fields = ['id', 'titre', 'filiere', 'etudiant']
+
+    def get_etudiant(self, obj):
+        return {
+            'id':     obj.etudiant_id,
+            'prenom': obj.etudiant.prenom,
+            'nom':    obj.etudiant.nom,
+        }
+
+
 class LivrableSerializer(serializers.ModelSerializer):
     type_livrable         = serializers.CharField(source='type')
     type_livrable_display = serializers.CharField(source='get_type_display', read_only=True)
@@ -13,9 +28,14 @@ class LivrableSerializer(serializers.ModelSerializer):
         model  = Livrable
         fields = [
             'id', 'pfe', 'type_livrable', 'type_livrable_display', 'fichier',
-            'statut', 'statut_display', 'remarques', 'hors_delai', 'date_depot',
+            'statut', 'statut_display', 'remarques', 'hors_delai', 'version', 'date_depot',
         ]
-        read_only_fields = ['id', 'statut', 'hors_delai', 'date_depot']
+        read_only_fields = ['id', 'statut', 'hors_delai', 'version', 'date_depot']
+
+
+class LivrableDetailSerializer(LivrableSerializer):
+    """Utilisé dans LivrableViewSet (top-level) — inclut pfe+etudiant pour l'affichage encadrant."""
+    pfe = PFEMinSerializer(read_only=True)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -55,13 +75,31 @@ class LivrableActionSerializer(serializers.Serializer):
 class AnneeAcademiqueSerializer(serializers.ModelSerializer):
     class Meta:
         model  = AnneeAcademique
-        fields = ['id', 'libelle', 'date_debut', 'date_fin', 'active']
+        fields = ['id', 'libelle', 'date_debut', 'date_fin', 'active', 'date_limite_soutenance']
 
 
 class AnneeAcademiqueCreateSerializer(serializers.Serializer):
-    libelle    = serializers.CharField(max_length=20)
-    date_debut = serializers.DateField()
-    date_fin   = serializers.DateField()
+    libelle                = serializers.CharField(max_length=20)
+    date_debut             = serializers.DateField()
+    date_fin               = serializers.DateField()
+    date_limite_soutenance = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if data['date_fin'] <= data['date_debut']:
+            raise serializers.ValidationError(
+                "La date de fin doit être postérieure à la date de début."
+            )
+        dls = data.get('date_limite_soutenance')
+        if dls:
+            if dls < data['date_debut']:
+                raise serializers.ValidationError(
+                    "La date limite des soutenances ne peut pas être avant le début de l'année."
+                )
+            if dls > data['date_fin']:
+                raise serializers.ValidationError(
+                    "La date limite des soutenances ne peut pas dépasser la fin de l'année."
+                )
+        return data
 
 
 class DeadlineSerializer(serializers.ModelSerializer):
@@ -76,6 +114,12 @@ class DeadlineCreateSerializer(serializers.Serializer):
     annee_id      = serializers.IntegerField()
     type_livrable = serializers.ChoiceField(choices=Deadline.TYPES)
     date_limite   = serializers.DateTimeField()
+
+    def validate_date_limite(self, value):
+        from django.utils import timezone
+        if value <= timezone.now():
+            raise serializers.ValidationError("La date limite doit être dans le futur.")
+        return value
 
 
 class FicheInscriptionSerializer(serializers.ModelSerializer):
@@ -107,6 +151,7 @@ class PFESerializer(serializers.ModelSerializer):
         fields = [
             'id', 'titre', 'filiere', 'annee', 'statut', 'statut_display',
             'score_plagiat', 'mention', 'mention_display',
+            'resume', 'mots_cles',
             'annee_academique', 'sujet', 'etudiant',
             'encadrant_acad', 'encadrant_entr',
             'livrables', 'fiche_inscription', 'created_at', 'updated_at',

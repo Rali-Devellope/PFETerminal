@@ -144,9 +144,9 @@ def dashboard_coordinateur(annee_id=None):
     soutenance_qs = Soutenance.objects.all()
 
     if annee_id:
-        pfe_qs       = pfe_qs.filter(annee_academique_id=annee_id)
-        sujets_qs    = sujets_qs.filter(annee_academique_id=annee_id)
-        soutenance_qs = soutenance_qs.filter(annee_academique_id=annee_id)
+        pfe_qs        = pfe_qs.filter(Q(annee_academique_id=annee_id) | Q(annee_academique__isnull=True))
+        sujets_qs     = sujets_qs.filter(Q(annee_academique_id=annee_id) | Q(annee_academique__isnull=True))
+        soutenance_qs = soutenance_qs.filter(Q(annee_academique_id=annee_id) | Q(annee_academique__isnull=True))
 
     en_cours = pfe_qs.filter(statut='EN_COURS').count()
     avec_rapport = pfe_qs.filter(

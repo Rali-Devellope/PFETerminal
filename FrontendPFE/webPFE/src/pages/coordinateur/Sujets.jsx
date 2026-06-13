@@ -6,9 +6,10 @@ import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getSujets, validerSujet, refuserSujet, affecterEncadrant } from '../../api/sujets'
 import { getUsers } from '../../api/auth'
+import { COORD_NAV } from './Dashboard'
+import { useFilieres } from '../../hooks/useFilieres'
 
 const STATUTS = ['', 'PROPOSE', 'VALIDE', 'REFUSE', 'AFFECTE']
-const FILIERES = ['', 'Finance', 'Comptabilité', 'Audit', 'Management', 'Informatique']
 
 function RefusModal({ sujet, onClose, onConfirm, loading }) {
   const { t } = useTranslation()
@@ -54,16 +55,8 @@ export default function CoordinateurSujets() {
   const [affecterTarget, setAffecterTarget] = useState(null)
   const [selectedEncadrant, setSelectedEncadrant] = useState('')
 
-  const NAV_ITEMS = [
-    { to: '/coordinateur', end: true, label: t('nav.vue_ensemble'),
-      icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
-    { to: '/coordinateur/sujets', label: t('nav.sujets'),
-      icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
-    { to: '/coordinateur/soutenances', label: t('nav.soutenances'),
-      icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-    { to: '/stats', label: t('nav.statistiques'),
-      icon: <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
-  ]
+  const NAV_ITEMS = COORD_NAV(t)
+  const { filieres: filieresData } = useFilieres({ activeOnly: false })
 
   const { data, isLoading } = useQuery({
     queryKey: ['sujets', statut, filiere, search],
@@ -204,7 +197,7 @@ export default function CoordinateurSujets() {
         <select value={filiere} onChange={(e) => setFiliere(e.target.value)}
           className="px-3 py-2.5 rounded-xl text-sm border bg-white outline-none" style={{ borderColor: '#e5e7eb' }}>
           <option value="">{t('coordinateur.all_filieres')}</option>
-          {FILIERES.filter(Boolean).map((f) => <option key={f} value={f}>{f}</option>)}
+          {filieresData.map((f) => <option key={f.id} value={f.libelle}>{f.libelle}</option>)}
         </select>
       </div>
 

@@ -20,13 +20,15 @@
   "badge": {
     "EN_COURS": "En cours",
     "EN_ATTENTE": "En attente",
+    "EN_ATTENTE_AUTORISATION": "En attente d'autorisation",
     "VALIDE": "Validé",
     "REFUSE": "Refusé",
     "ARCHIVE": "Archivé",
     "PLANIFIEE": "Planifiée",
     "TERMINEE": "Terminée",
     "PROPOSE": "Proposée",
-    "AFFECTE": "Affecté"
+    "AFFECTE": "Affecté",
+    "REPORTEE": "Reportée"
   },
   "login": {
     "title": "Connexion",
@@ -59,6 +61,7 @@
     "vue_ensemble": "Vue d'ensemble",
     "sujets": "Sujets",
     "soutenances": "Soutenances",
+    "deadlines": "Deadlines livrables",
     "statistiques": "Statistiques",
     "utilisateurs": "Utilisateurs",
     "mes_soutenances": "Mes soutenances"
@@ -198,6 +201,20 @@
     "sending": "Envoi...",
     "souts_title": "Soutenances",
     "souts_sub": "Planification et gestion des soutenances",
+    "deadline_sout_label": "Date limite des soutenances",
+    "deadline_non_definie": "Aucune date limite définie pour les soutenances",
+    "deadline_definir": "Définir",
+    "deadline_modifier": "Modifier",
+    "deadline_depasse": "Période dépassée",
+    "deadline_jours": "{{count}} jours restants",
+    "date_apres_limite": "La date dépasse la limite du {{date}}",
+    "tab_individuelle": "Individuelle",
+    "tab_session": "Par filière",
+    "filiere_label": "Filière",
+    "select_filiere": "Choisir une filière",
+    "session_preview": "{{count}} étudiant(s) éligible(s) :",
+    "session_no_eligible": "Aucun étudiant éligible dans cette filière (rapport validé requis).",
+    "session_btn": "Planifier {{count}} soutenance(s)",
     "planifier_btn": "Planifier",
     "new_sout_title": "Nouvelle soutenance",
     "pfe_label": "PFE",
@@ -222,7 +239,10 @@
     "select_encadrant": "Sélectionner un encadrant",
     "no_encadrants": "Aucun encadrant disponible",
     "affecter_confirm": "Affecter",
-    "affecter_loading": "Affectation..."
+    "affecter_loading": "Affectation...",
+    "deadlines_title": "Deadlines livrables",
+    "deadline_save": "Enregistrer",
+    "deadlines_no_annee": "Aucune année académique active. Créez une année et activez-la pour définir les deadlines."
   },
   "jury": {
     "hello": "Bonjour, {{name}}",
@@ -246,7 +266,20 @@
     "bien": "Bien",
     "assez_bien": "Assez bien",
     "passable": "Passable",
-    "insuffisant": "Insuffisant"
+    "insuffisant": "Insuffisant",
+    "label_filiere": "Filière",
+    "label_encadrant": "Encadrant",
+    "label_annee": "Année",
+    "label_plagiat": "Score plagiat",
+    "label_ma_note": "Ma note",
+    "label_note_enc": "Encadrant",
+    "label_note_finale": "Finale",
+    "btn_convocation": "Convocation",
+    "btn_pv": "PV PDF",
+    "badge_en_cours": "En cours",
+    "badge_en_attente_auth": "En attente d'autorisation",
+    "badge_president": "Président",
+    "badge_reportee": "Reportée"
   },
   "scolarite": {
     "title": "Espace Scolarité",
@@ -335,6 +368,8 @@
     "role": "Rôle *",
     "filiere": "Filière",
     "select_filiere": "Sélectionner une filière",
+    "telephone": "Téléphone",
+    "matricule": "Matricule",
     "create_btn": "Créer le compte",
     "creating": "Création...",
     "search_ph": "Rechercher un utilisateur...",

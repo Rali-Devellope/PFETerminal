@@ -13,15 +13,16 @@ class NoteSerializer(serializers.ModelSerializer):
 
 
 class SoutenanceSerializer(serializers.ModelSerializer):
-    pfe          = PFESerializer(read_only=True)
-    membres_jury = UserSerializer(many=True, read_only=True)
-    notes        = NoteSerializer(many=True, read_only=True)
+    pfe            = PFESerializer(read_only=True)
+    membres_jury   = UserSerializer(many=True, read_only=True)
+    president_jury = UserSerializer(read_only=True)
+    notes          = NoteSerializer(many=True, read_only=True)
 
     class Meta:
         model  = Soutenance
         fields = [
             'id', 'pfe', 'date', 'salle', 'duree', 'statut',
-            'note_finale', 'membres_jury', 'notes', 'created_at', 'updated_at',
+            'note_finale', 'membres_jury', 'president_jury', 'notes', 'created_at', 'updated_at',
         ]
 
 
@@ -33,10 +34,18 @@ class PlanifierSerializer(serializers.Serializer):
 
 
 class AffecterJurySerializer(serializers.Serializer):
-    jury_ids = serializers.ListField(child=serializers.IntegerField(), min_length=2)
+    jury_ids     = serializers.ListField(child=serializers.IntegerField(), min_length=2)
+    president_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class SoumettreNoteSerializer(serializers.Serializer):
     valeur      = serializers.FloatField(min_value=0, max_value=20)
     type        = serializers.ChoiceField(choices=['jury', 'encadrant'])
     commentaire = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class PlanifierSessionSerializer(serializers.Serializer):
+    filiere    = serializers.CharField(max_length=100)
+    date_debut = serializers.DateTimeField()
+    salle      = serializers.CharField(max_length=50)
+    duree      = serializers.IntegerField(min_value=15, max_value=120)

@@ -6,6 +6,7 @@ import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
 import { getSujets, choisirSujet, createSujet } from '../../api/sujets'
+import { useFilieres } from '../../hooks/useFilieres'
 
 const INIT_FORM = { titre: '', description: '', origine: 'academique', filiere: '', annee: new Date().getFullYear(), confidentiel: false }
 
@@ -13,6 +14,7 @@ export default function EtudiantSujets() {
   const { t } = useTranslation()
   const { user } = useAuthStore()
   const qc = useQueryClient()
+  const { filieres: filieresData } = useFilieres()
 
   const [search, setSearch] = useState('')
   const [filiere, setFiliere] = useState('')
@@ -40,8 +42,6 @@ export default function EtudiantSujets() {
 
   const sujets = data?.data?.results ?? data?.data?.data ?? []
   const sujetsArr = Array.isArray(sujets) ? sujets : []
-
-  const filieres = [...new Set(sujetsArr.map((s) => s.filiere).filter(Boolean))]
 
   const filtered = sujetsArr.filter((s) => {
     const matchSearch = !search || s.titre?.toLowerCase().includes(search.toLowerCase())
@@ -155,11 +155,16 @@ export default function EtudiantSujets() {
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.filiere')}</label>
-              <input type="text" value={form.filiere} onChange={(e) => setForm({ ...form, filiere: e.target.value })}
-                placeholder={t('sujet_form.filiere_ph')}
-                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none" style={{ borderColor: '#e5e7eb' }}
+              <select value={form.filiere} onChange={(e) => setForm({ ...form, filiere: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none bg-white"
+                style={{ borderColor: '#e5e7eb', color: form.filiere ? '#1a2744' : '#9ca3af' }}
                 onFocus={(e) => (e.target.style.borderColor = '#2db84b')}
-                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')} />
+                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}>
+                <option value="">{t('sujet_form.filiere_ph') || 'Sélectionner une filière'}</option>
+                {filieresData.map((f) => (
+                  <option key={f.id} value={f.libelle}>{f.libelle}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5 text-gray-600">{t('sujet_form.annee')}</label>
@@ -210,7 +215,7 @@ export default function EtudiantSujets() {
           style={{ borderColor: '#e5e7eb' }}
         >
           <option value="">{t('etudiant.sujets_all_filieres')}</option>
-          {filieres.map((f) => <option key={f} value={f}>{f}</option>)}
+          {filieresData.map((f) => <option key={f.id} value={f.libelle}>{f.libelle}</option>)}
         </select>
       </div>
 
@@ -258,9 +263,9 @@ export default function EtudiantSujets() {
                     <p className="text-xs text-gray-500 line-clamp-2 mb-1.5">{s.description}</p>
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xs text-gray-400">{s.filiere} · {s.annee}</span>
-                      {s.encadrant && (
+                      {s.propose_par && (
                         <span className="text-xs text-gray-400">
-                          {t('etudiant.sujets_proposer')} : {s.propose_par?.prenom} {s.propose_par?.nom}
+                          {t('etudiant.sujets_proposer')} : {s.propose_par.prenom} {s.propose_par.nom}
                         </span>
                       )}
                     </div>

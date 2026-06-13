@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.soutenances',
     'apps.notifications',
     'apps.statistiques',
+    'apps.config',
 ]
 
 MIDDLEWARE = [

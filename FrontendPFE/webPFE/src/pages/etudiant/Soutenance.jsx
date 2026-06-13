@@ -29,22 +29,20 @@ function NoteBar({ note }) {
             <span className="text-sm text-gray-400 font-medium">/ 20</span>
           </div>
         </div>
-        <span
-          className="px-3 py-1 rounded-full text-xs font-semibold"
-          style={{ backgroundColor: color + '1a', color }}
-        >
+        <span className="px-3 py-1 rounded-full text-xs font-semibold"
+              style={{ backgroundColor: color + '1a', color }}>
           {mention}
         </span>
       </div>
       <div className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#f1f5f9' }}>
-        <div
-          className="h-3 rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}99, ${color})` }}
-        />
+        <div className="h-3 rounded-full transition-all duration-700"
+             style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}99, ${color})` }} />
       </div>
     </div>
   )
 }
+
+const TYPE_NOTE_LABELS = { jury: 'Jury', encadrant: 'Encadrant', finale: 'Finale' }
 
 export default function EtudiantSoutenance() {
   const { t } = useTranslation()
@@ -84,10 +82,8 @@ export default function EtudiantSoutenance() {
 
       {isError && (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <div
-            className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{ backgroundColor: '#f0f9ff' }}
-          >
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+               style={{ backgroundColor: '#f0f9ff' }}>
             <svg width="28" height="28" fill="none" stroke="#0ea5e9" strokeWidth="1.5" viewBox="0 0 24 24">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
@@ -107,10 +103,8 @@ export default function EtudiantSoutenance() {
       {s && (
         <div className="grid gap-5 lg:grid-cols-2">
           {/* Détails */}
-          <Card
-            title="Détails de la soutenance"
-            icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}
-          >
+          <Card title="Détails de la soutenance"
+            icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}>
             <InfoRow
               label="Date et heure"
               value={new Date(s.date).toLocaleString('fr-FR', {
@@ -124,44 +118,75 @@ export default function EtudiantSoutenance() {
           </Card>
 
           {/* Jury */}
-          <Card
-            title="Membres du jury"
-            icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>}
-          >
+          <Card title="Membres du jury"
+            icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>}>
             {s.membres_jury?.length > 0 ? (
               <div className="space-y-2.5">
-                {s.membres_jury.map((m, i) => (
-                  <div
-                    key={m.id ?? i}
-                    className="flex items-center gap-3 p-3 rounded-xl transition"
-                    style={{ backgroundColor: '#f8fafc' }}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #1e3a5f, #2d5a8f)' }}
-                    >
-                      {m.prenom?.[0]}{m.nom?.[0]}
+                {s.membres_jury.map((m) => {
+                  const isPresident = s.president_jury?.id === m.id
+                  return (
+                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl transition"
+                         style={{ backgroundColor: isPresident ? '#fffbeb' : '#f8fafc' }}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                           style={{ background: isPresident
+                             ? 'linear-gradient(135deg, #b45309, #d97706)'
+                             : 'linear-gradient(135deg, #1e3a5f, #2d5a8f)' }}>
+                        {m.prenom?.[0]}{m.nom?.[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold truncate" style={{ color: '#1a2744' }}>
+                            {m.prenom} {m.nom}
+                          </p>
+                          {isPresident && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
+                              Président
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-400 truncate">{m.email}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: '#1a2744' }}>
-                        {m.prenom} {m.nom}
-                      </p>
-                      <p className="text-[11px] text-gray-400 truncate">{m.email}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-400">Jury non encore affecté</p>
             )}
           </Card>
 
+          {/* Notes individuelles */}
+          {s.notes?.length > 0 && (
+            <Card title="Notes des évaluateurs"
+              icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}>
+              <div className="space-y-2">
+                {s.notes.map((n) => (
+                  <div key={n.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                       style={{ backgroundColor: '#f8fafc' }}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>
+                        {n.evaluateur.prenom} {n.evaluateur.nom}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {TYPE_NOTE_LABELS[n.type] ?? n.type}
+                        {n.commentaire && ` · ${n.commentaire}`}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold flex-shrink-0"
+                          style={{ color: n.valeur >= 10 ? '#15803d' : '#b91c1c' }}>
+                      {n.valeur}<span className="text-xs font-normal text-gray-400">/20</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* Note finale */}
           {s.note_finale != null && (
-            <Card
-              title="Résultat"
-              icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>}
-            >
+            <Card title="Résultat final"
+              icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>}>
               <NoteBar note={s.note_finale} />
               {s.note_finale >= 10 && (
                 <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50">

@@ -7,6 +7,10 @@ class AnneeAcademique(models.Model):
     date_debut = models.DateField()
     date_fin   = models.DateField()
     active     = models.BooleanField(default=False)
+    date_limite_soutenance = models.DateField(
+        null=True, blank=True,
+        help_text="Dernière date à laquelle une soutenance peut être planifiée dans cette année."
+    )
 
     class Meta:
         verbose_name        = 'Année académique'
@@ -43,6 +47,8 @@ class PFE(models.Model):
     statut           = models.CharField(max_length=10, choices=STATUTS, default='EN_COURS')
     score_plagiat    = models.FloatField(default=0.0)
     mention          = models.CharField(max_length=20, choices=MENTIONS, blank=True)
+    resume           = models.TextField(blank=True)
+    mots_cles        = models.CharField(max_length=500, blank=True)
     annee_academique = models.ForeignKey(
         AnneeAcademique, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='pfe_set'
@@ -138,6 +144,7 @@ class Livrable(models.Model):
     statut     = models.CharField(max_length=15, choices=STATUTS, default='EN_ATTENTE')
     remarques  = models.TextField(blank=True)
     hors_delai = models.BooleanField(default=False)
+    version    = models.PositiveIntegerField(default=1)
     date_depot = models.DateTimeField(auto_now_add=True)
 
     class Meta:

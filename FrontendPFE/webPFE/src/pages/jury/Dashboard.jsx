@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card, { StatCard } from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
-import { getSoutenances, soumettreNote } from '../../api/soutenances'
+import { getSoutenances, soumettreNote, telechargerConvocation, telechargerPV } from '../../api/soutenances'
 import { useAuthStore } from '../../store/authStore'
 
 function NoteModal({ soutenance, onClose, onSubmit, loading }) {
@@ -83,7 +83,21 @@ export default function JuryDashboard() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const { user } = useAuthStore()
-  const [noteTarget, setNoteTarget] = useState(null)
+  const [noteTarget,   setNoteTarget]   = useState(null)
+  const [downloading, setDownloading] = useState(null)
+
+  const downloadPdf = async (apiFn, filename, id) => {
+    setDownloading(id + filename)
+    try {
+      const { data } = await apiFn(id)
+      const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   const NAV_ITEMS = [
     { to: '/jury', end: true, label: t('nav.mes_soutenances'),
@@ -99,8 +113,8 @@ export default function JuryDashboard() {
   const soutsArr = Array.isArray(allSouts) ? allSouts : []
 
   const mesSoutenances = soutsArr.filter((s) => s.membres_jury?.some((m) => m.id === user?.id))
-  const planifiees = mesSoutenances.filter((s) => s.statut === 'PLANIFIEE')
-  const terminees = mesSoutenances.filter((s) => s.statut === 'TERMINEE')
+  const planifiees = mesSoutenances.filter((s) => ['EN_ATTENTE_AUTORISATION', 'PLANIFIEE', 'EN_COURS', 'REPORTEE'].includes(s.statut))
+  const terminees  = mesSoutenances.filter((s) => s.statut === 'TERMINEE')
 
   const noteMut = useMutation({
     mutationFn: ({ id, data }) => soumettreNote(id, data),
@@ -168,31 +182,67 @@ export default function JuryDashboard() {
                       {s.pfe?.titre ?? s.pfe?.sujet?.titre}
                     </p>
                   </div>
-                  <button onClick={() => setNoteTarget(s)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)' }}>
-                    {t('jury.noter_btn')}
-                  </button>
+                  <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
+                    {s.statut === 'EN_COURS' && (
+                      <span className="px-2 py-1 rounded-lg text-[10px] font-bold text-center animate-pulse"
+                        style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' }}>
+                        {t('jury.badge_en_cours')}
+                      </span>
+                    )}
+                    {s.statut === 'REPORTEE' && (
+                      <span className="px-2 py-1 rounded-lg text-[10px] font-semibold text-center"
+                        style={{ backgroundColor: '#fff7ed', color: '#b45309' }}>
+                        {t('jury.badge_reportee')}
+                      </span>
+                    )}
+                    {(s.statut === 'PLANIFIEE' || s.statut === 'EN_COURS') && !s.notes?.some((n) => n.evaluateur?.id === user?.id && n.type === 'jury') && (
+                      <button onClick={() => setNoteTarget(s)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                        style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)' }}>
+                        {t('jury.noter_btn')}
+                      </button>
+                    )}
+                    {s.statut === 'EN_ATTENTE_AUTORISATION' && (
+                      <span className="px-2 py-1 rounded-lg text-[10px] font-semibold text-center"
+                        style={{ backgroundColor: '#fef9c3', color: '#92400e' }}>
+                        {t('jury.badge_en_attente_auth')}
+                      </span>
+                    )}
+                    {s.president_jury?.id === user?.id && (
+                      <span className="px-2 py-1 rounded-lg text-[10px] font-bold"
+                        style={{ backgroundColor: '#ede9fe', color: '#7e22ce' }}>
+                        {t('jury.badge_president')}
+                      </span>
+                    )}
+                    {(s.statut === 'PLANIFIEE' || s.statut === 'EN_COURS') && (
+                      <button onClick={() => downloadPdf(telechargerConvocation, `convocation_${s.id}.pdf`, s.id)}
+                        disabled={downloading === s.id + `convocation_${s.id}.pdf`}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                        style={{ backgroundColor: '#1d4ed8', opacity: downloading === s.id + `convocation_${s.id}.pdf` ? 0.6 : 1 }}>
+                        {t('jury.btn_convocation')}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Fiche PFE */}
                 <div className="mt-3 ms-16 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Filière</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">{t('jury.label_filiere')}</p>
                     <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>{s.pfe?.filiere ?? '—'}</p>
                   </div>
                   <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Encadrant</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">{t('jury.label_encadrant')}</p>
                     <p className="text-xs font-semibold truncate" style={{ color: '#1a2744' }}>
                       {s.pfe?.encadrant_acad ? `${s.pfe.encadrant_acad.prenom} ${s.pfe.encadrant_acad.nom}` : '—'}
                     </p>
                   </div>
                   <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Année</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">{t('jury.label_annee')}</p>
                     <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>{s.pfe?.annee ?? '—'}</p>
                   </div>
                   <div className="px-3 py-2 rounded-xl" style={{ backgroundColor: '#f8fafc' }}>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Score plagiat</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">{t('jury.label_plagiat')}</p>
                     <p className="text-xs font-bold" style={{ color: plagiatColor }}>{plagiat}%</p>
                   </div>
                 </div>
@@ -225,38 +275,71 @@ export default function JuryDashboard() {
             <p className="text-sm text-gray-400 py-4 text-center">{t('jury.no_term')}</p>
           )}
           {!isLoading && terminees.map((s) => {
-            const maNote = s.notes?.find((n) => n.evaluateur?.id === user?.id)
+            const maNote      = s.notes?.find((n) => n.evaluateur?.id === user?.id && n.type === 'jury')
+            const noteEnc     = s.notes?.find((n) => n.type === 'encadrant')
+            const estPresident = s.president_jury?.id === user?.id
             return (
-              <div key={s.id} className="py-4 flex items-start gap-4 border-b border-gray-50 last:border-0">
-                <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: '#f0fdf4' }}>
-                  <span className="text-sm font-bold" style={{ color: '#15803d' }}>{new Date(s.date).getDate()}</span>
-                  <span className="text-[9px] font-medium" style={{ color: '#4ade80' }}>
-                    {new Date(s.date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>
-                    {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
-                  </p>
-                  <p className="text-xs text-gray-400">{new Date(s.date).toLocaleDateString('fr-FR')} · {s.salle}</p>
-                  {s.note_finale != null && (
-                    <p className="text-xs font-semibold mt-0.5" style={{ color: s.note_finale >= 10 ? '#15803d' : '#b91c1c' }}>
-                      Note finale : {s.note_finale}/20
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  {maNote ? (
-                    <span className="text-sm font-bold" style={{ color: maNote.valeur >= 10 ? '#15803d' : '#b91c1c' }}>
-                      {maNote.valeur}/20
+              <div key={s.id} className="py-4 border-b border-gray-50 last:border-0">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: '#f0fdf4' }}>
+                    <span className="text-sm font-bold" style={{ color: '#15803d' }}>{new Date(s.date).getDate()}</span>
+                    <span className="text-[9px] font-medium" style={{ color: '#4ade80' }}>
+                      {new Date(s.date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}
                     </span>
-                  ) : (
-                    <button onClick={() => setNoteTarget(s)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                      style={{ backgroundColor: '#2db84b' }}>
-                      {t('jury.noter_btn')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>
+                        {s.pfe?.etudiant?.prenom} {s.pfe?.etudiant?.nom}
+                      </p>
+                      {estPresident && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+                          style={{ backgroundColor: '#ede9fe', color: '#7e22ce' }}>{t('jury.badge_president')}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">{new Date(s.date).toLocaleDateString('fr-FR')} · {s.salle}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{s.pfe?.titre}</p>
+
+                    {/* Détail des notes après délibération */}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {maNote && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                          style={{ backgroundColor: '#f0fdf4', color: maNote.valeur >= 10 ? '#15803d' : '#b91c1c' }}>
+                          {t('jury.label_ma_note')} : {maNote.valeur}/20
+                        </span>
+                      )}
+                      {noteEnc && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                          style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
+                          {t('jury.label_note_enc')} : {noteEnc.valeur}/20
+                        </span>
+                      )}
+                      {s.note_finale != null && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                          style={{ backgroundColor: s.note_finale >= 10 ? '#f0fdf4' : '#fef2f2',
+                                   color: s.note_finale >= 10 ? '#15803d' : '#b91c1c',
+                                   border: `1px solid ${s.note_finale >= 10 ? '#bbf7d0' : '#fecaca'}` }}>
+                          {t('jury.label_note_finale')} : {s.note_finale}/20
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    {!maNote && (
+                      <button onClick={() => setNoteTarget(s)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                        style={{ backgroundColor: '#2db84b' }}>
+                        {t('jury.noter_btn')}
+                      </button>
+                    )}
+                    <button onClick={() => downloadPdf(telechargerPV, `pv_${s.id}.pdf`, s.id)}
+                      disabled={downloading === s.id + `pv_${s.id}.pdf`}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ backgroundColor: '#f8fafc', color: '#374151', border: '1px solid #e5e7eb',
+                               opacity: downloading === s.id + `pv_${s.id}.pdf` ? 0.6 : 1 }}>
+                      {t('jury.btn_pv')}
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             )

@@ -10,7 +10,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['id', 'email', 'nom', 'prenom', 'role', 'full_name',
-                  'is_active', 'is_first_login', 'created_at']
+                  'is_active', 'is_first_login', 'max_etudiants',
+                  'filiere', 'telephone', 'matricule', 'created_at']
         read_only_fields = ['id', 'email', 'role', 'is_first_login', 'created_at']
 
 
@@ -19,7 +20,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'nom', 'prenom', 'role', 'password']
+        fields = ['email', 'nom', 'prenom', 'role', 'password', 'filiere', 'telephone', 'matricule']
 
     def validate_email(self, value):
         from core.utils import validate_iscae_email
@@ -31,7 +32,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
 class UpdateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['nom', 'prenom', 'is_active', 'role']
+        fields = ['nom', 'prenom', 'is_active', 'role', 'max_etudiants', 'filiere', 'telephone', 'matricule']
 
 
 class LoginSerializer(serializers.Serializer):

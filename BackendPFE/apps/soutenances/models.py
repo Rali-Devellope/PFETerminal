@@ -21,8 +21,12 @@ class Soutenance(models.Model):
         'pfe.AnneeAcademique', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='soutenances'
     )
-    membres_jury = models.ManyToManyField(
+    membres_jury   = models.ManyToManyField(
         CustomUser, related_name='jurys', limit_choices_to={'role': 'jury'}, blank=True
+    )
+    president_jury = models.ForeignKey(
+        CustomUser, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='presidence_soutenances'
     )
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)

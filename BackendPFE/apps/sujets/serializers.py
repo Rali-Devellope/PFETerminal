@@ -26,6 +26,24 @@ class SujetSerializer(serializers.ModelSerializer):
             return UserSerializer(etudiant).data
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not instance.confidentiel:
+            return data
+        request = self.context.get('request')
+        if not request:
+            return data
+        user = request.user
+        autorise = (
+            user == instance.propose_par or
+            user == instance.encadrant or
+            user == instance.etudiant_cible or
+            user.role in ('coordinateur', 'admin', 'scolarite')
+        )
+        if not autorise:
+            data['description'] = '🔒 Description confidentielle'
+        return data
+
 
 class SujetCreateSerializer(serializers.ModelSerializer):
     etudiant_cible = serializers.PrimaryKeyRelatedField(

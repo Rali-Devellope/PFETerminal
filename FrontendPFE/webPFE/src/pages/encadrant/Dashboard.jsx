@@ -41,7 +41,7 @@ export default function EncadrantDashboard() {
   const soutsArr = Array.isArray(allSouts) ? allSouts : []
 
   const enCours = pfesArr.filter((p) => p.statut === 'EN_COURS').length
-  const termines = pfesArr.filter((p) => p.statut === 'TERMINE').length
+  const termines = pfesArr.filter((p) => p.statut === 'ARCHIVE').length
   const prochaine = soutsArr.find((s) => s.statut === 'PLANIFIEE')
   const [noteTarget, setNoteTarget] = useState(null)
   const [noteVal, setNoteVal] = useState('')
@@ -137,16 +137,19 @@ export default function EncadrantDashboard() {
                     <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>
                       {p.etudiant?.prenom} {p.etudiant?.nom}
                     </p>
-                    <p className="text-xs text-gray-400 truncate">{p.sujet?.titre ?? '—'}</p>
-                    {p.sujet?.filiere && <p className="text-xs text-gray-400">{p.sujet.filiere}</p>}
+                    <p className="text-xs text-gray-400 truncate">{p.titre ?? '—'}</p>
+                    {p.filiere && <p className="text-xs text-gray-400">{p.filiere}</p>}
                   </div>
                   <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                     <Badge statut={p.statut} />
-                    {p.note_finale != null && (
-                      <span className="text-xs font-semibold" style={{ color: p.note_finale >= 10 ? '#15803d' : '#b91c1c' }}>
-                        {p.note_finale}/20
-                      </span>
-                    )}
+                    {(() => {
+                      const notePfe = soutsArr.find((s) => s.pfe?.id === p.id)?.note_finale
+                      return notePfe != null ? (
+                        <span className="text-xs font-semibold" style={{ color: notePfe >= 10 ? '#15803d' : '#b91c1c' }}>
+                          {notePfe}/20
+                        </span>
+                      ) : null
+                    })()}
                   </div>
                 </div>
               ))}

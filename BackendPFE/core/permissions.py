@@ -51,3 +51,9 @@ class IsAdminOrReadOnly(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return request.user.is_authenticated
         return request.user.is_authenticated and request.user.role == 'admin'
+
+
+class IsAdminOrScolarite(BasePermission):
+    """Gestion du calendrier académique : création/ouverture/fermeture des années."""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role in ('admin', 'scolarite')
