@@ -55,7 +55,7 @@ export default function EncadrantLivrables() {
   const livrables = data?.data?.results ?? data?.data?.data ?? data?.data ?? []
   const livrablesArr = Array.isArray(livrables) ? livrables : []
 
-  const enAttente = livrablesArr.filter((l) => l.statut === 'EN_ATTENTE').length
+  const enAttente = livrablesArr.filter((l) => l.statut === 'EN_ATTENTE_VALIDATION').length
 
   const validerMut = useMutation({
     mutationFn: ({ id, remarques }) => validerLivrableById(id, { remarques }),
@@ -80,7 +80,7 @@ export default function EncadrantLivrables() {
     refuserMut.mutate({ id: refusTarget.id, remarques })
   }
 
-  const STATUTS = ['', 'EN_ATTENTE', 'VALIDE', 'REFUSE']
+  const STATUTS = ['', 'EN_ATTENTE_VALIDATION', 'VALIDE', 'REJETE']
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
@@ -174,7 +174,7 @@ export default function EncadrantLivrables() {
 
                 {/* Actions */}
                 <div className="flex flex-col gap-2 flex-shrink-0">
-                  {l.statut === 'EN_ATTENTE' && (
+                  {l.statut === 'EN_ATTENTE_VALIDATION' && (
                     <>
                       <button
                         onClick={() => validerMut.mutate({ id: l.id, remarques: '' })}

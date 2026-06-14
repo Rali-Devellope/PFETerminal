@@ -170,7 +170,7 @@ def dashboard_coordinateur(annee_id=None):
     return {
         'sujets_en_attente': sujets_qs.filter(statut='PROPOSE').count(),
         'pfe_sans_encadrant': pfe_qs.filter(encadrant_acad__isnull=True, statut='EN_COURS').count(),
-        'livrables_en_attente': Livrable.objects.filter(pfe__in=pfe_qs, statut='EN_ATTENTE').count(),
+        'livrables_en_attente': Livrable.objects.filter(pfe__in=pfe_qs, statut='EN_ATTENTE_VALIDATION').count(),
         'soutenances_en_attente_autorisation': soutenance_qs.filter(statut='EN_ATTENTE_AUTORISATION').count(),
         'pfe_en_cours': en_cours,
         'pct_rapport_valide': round(avec_rapport / en_cours * 100, 1) if en_cours else 0,
@@ -201,7 +201,7 @@ def dashboard_encadrant(encadrant_id):
         for typ in ('rapport', 'code', 'presentation'):
             lv = pfe.livrables.filter(type=typ).order_by('-date_depot').first()
             livs[typ] = lv.statut if lv else None
-            if lv and lv.statut == 'EN_ATTENTE':
+            if lv and lv.statut == 'EN_ATTENTE_VALIDATION':
                 livrables_en_attente += 1
 
         sout = None

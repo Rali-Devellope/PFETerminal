@@ -15,7 +15,7 @@ from .serializers import (
 )
 from .filters import PFEFilter, LivrableFilter
 from .services import (
-    upload_livrable, valider_livrable, refuser_livrable, archiver_pfe,
+    upload_livrable, valider_livrable, rejeter_livrable, refuser_livrable, archiver_pfe,
     get_annee_active, creer_annee, ouvrir_annee, fermer_annee_active, definir_deadline,
     supprimer_deadline as _supprimer_deadline,
     notifier_deadlines_etudiants, get_stats_livrables,
@@ -292,5 +292,5 @@ class LivrableViewSet(viewsets.ModelViewSet):
     def refuser(self, request, pk=None):
         ser = LivrableActionSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        livrable = refuser_livrable(self.get_object(), request.user, ser.validated_data.get('remarques', ''))
+        livrable = rejeter_livrable(self.get_object(), request.user, ser.validated_data.get('remarques', ''))
         return success_response(data=LivrableSerializer(livrable).data)

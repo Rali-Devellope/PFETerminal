@@ -43,9 +43,9 @@ const TYPE_COLORS = {
 }
 
 const STATUT_ICON = {
-  VALIDE:     { icon: '✓', color: '#15803d', bg: '#f0fdf4' },
-  EN_ATTENTE: { icon: '⏳', color: '#d97706', bg: '#fffbeb' },
-  REFUSE:     { icon: '✗', color: '#b91c1c', bg: '#fef2f2' },
+  VALIDE:               { icon: '✓', color: '#15803d', bg: '#f0fdf4' },
+  EN_ATTENTE_VALIDATION: { icon: '⏳', color: '#d97706', bg: '#fffbeb' },
+  REJETE:               { icon: '✗', color: '#b91c1c', bg: '#fef2f2' },
 }
 
 export default function EtudiantDashboard() {
@@ -90,8 +90,8 @@ export default function EtudiantDashboard() {
   const encadrant = pfe?.encadrant_acad ?? pfe?.encadrant_entr
   const livrables = pfe?.livrables ?? []
   const livrablesValides   = livrables.filter((l) => l.statut === 'VALIDE').length
-  const livrablesEnAttente = livrables.filter((l) => l.statut === 'EN_ATTENTE').length
-  const livrablesRefuses   = livrables.filter((l) => l.statut === 'REFUSE').length
+  const livrablesEnAttente = livrables.filter((l) => l.statut === 'EN_ATTENTE_VALIDATION').length
+  const livrablesRefuses   = livrables.filter((l) => l.statut === 'REJETE').length
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>

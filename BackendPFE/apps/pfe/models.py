@@ -133,15 +133,15 @@ class Livrable(models.Model):
         ('presentation',  'Présentation'),
     ]
     STATUTS = [
-        ('EN_ATTENTE', 'En attente'),
-        ('VALIDE',     'Validé'),
-        ('REFUSE',     'Refusé'),
+        ('EN_ATTENTE_VALIDATION', 'En attente de validation'),
+        ('VALIDE',                'Validé'),
+        ('REJETE',                'Rejeté'),
     ]
 
     pfe        = models.ForeignKey(PFE, on_delete=models.CASCADE, related_name='livrables')
     type       = models.CharField(max_length=20, choices=TYPES)
     fichier    = models.FileField(upload_to=livrable_upload_path)
-    statut     = models.CharField(max_length=15, choices=STATUTS, default='EN_ATTENTE')
+    statut     = models.CharField(max_length=25, choices=STATUTS, default='EN_ATTENTE_VALIDATION')
     remarques  = models.TextField(blank=True)
     hors_delai = models.BooleanField(default=False)
     version    = models.PositiveIntegerField(default=1)

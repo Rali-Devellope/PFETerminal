@@ -320,7 +320,7 @@ export default function EtudiantLivrables() {
                       {' à '}
                       {new Date(l.date_depot).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    {l.remarques && l.statut === 'REFUSE' && (
+                    {l.remarques && l.statut === 'REJETE' && (
                       <p className="text-xs mt-1 font-medium" style={{ color: '#b91c1c' }}>
                         {t('livrables.reason_prefix')}{l.remarques}
                       </p>
@@ -328,7 +328,7 @@ export default function EtudiantLivrables() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {l.statut === 'REFUSE' && (
+                  {l.statut === 'REJETE' && (
                     <button
                       onClick={() => {
                         setForm({ ...form, type_livrable: l.type_livrable ?? l.type })

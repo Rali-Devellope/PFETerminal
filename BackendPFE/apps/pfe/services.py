@@ -227,7 +227,7 @@ def _calculer_plagiat(pfe):
 
 
 def valider_livrable(livrable, encadrant, remarques=''):
-    if livrable.statut != 'EN_ATTENTE':
+    if livrable.statut != 'EN_ATTENTE_VALIDATION':
         raise ValidationError("Ce livrable a déjà été traité")
     livrable.statut = 'VALIDE'
     livrable.remarques = remarques
@@ -237,17 +237,21 @@ def valider_livrable(livrable, encadrant, remarques=''):
     return livrable
 
 
-def refuser_livrable(livrable, encadrant, remarques):
+def rejeter_livrable(livrable, encadrant, remarques):
     if not remarques:
-        raise ValidationError("Des remarques sont obligatoires pour refuser un livrable")
-    if livrable.statut != 'EN_ATTENTE':
+        raise ValidationError("Des remarques sont obligatoires pour rejeter un livrable")
+    if livrable.statut != 'EN_ATTENTE_VALIDATION':
         raise ValidationError("Ce livrable a déjà été traité")
-    livrable.statut = 'REFUSE'
+    livrable.statut = 'REJETE'
     livrable.remarques = remarques
     livrable.save(update_fields=['statut', 'remarques'])
     from apps.notifications.services import notifier_livrable_refuse
     notifier_livrable_refuse(livrable)
     return livrable
+
+
+# Alias conservé pour compatibilité avec les imports existants
+refuser_livrable = rejeter_livrable
 
 
 def generer_fiche_inscription(pfe):

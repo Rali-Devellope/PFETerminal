@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next'
 
 const STYLES = {
   EN_COURS:                { bg: '#eff6ff', color: '#1d4ed8', dot: '#3b82f6' },
-  EN_ATTENTE:              { bg: '#fffbeb', color: '#b45309', dot: '#f59e0b' },
+  EN_ATTENTE_VALIDATION:   { bg: '#fffbeb', color: '#b45309', dot: '#f59e0b' },
   EN_ATTENTE_AUTORISATION: { bg: '#fffbeb', color: '#92400e', dot: '#f59e0b' },
   VALIDE:                  { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
-  REFUSE:                  { bg: '#fef2f2', color: '#b91c1c', dot: '#ef4444' },
+  REJETE:                  { bg: '#fef2f2', color: '#b91c1c', dot: '#ef4444' },
   ARCHIVE:                 { bg: '#f9fafb', color: '#6b7280', dot: '#9ca3af' },
   PLANIFIEE:               { bg: '#faf5ff', color: '#7e22ce', dot: '#a855f7' },
   TERMINEE:                { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },

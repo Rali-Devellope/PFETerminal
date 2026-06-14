@@ -122,7 +122,7 @@ class LivrableTests(TestCase):
         r = self.client_etud.post('/api/v1/livrables/', data, format='multipart')
         self.assertEqual(r.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Livrable.objects.count(), 1)
-        self.assertEqual(Livrable.objects.first().statut, 'EN_ATTENTE')
+        self.assertEqual(Livrable.objects.first().statut, 'EN_ATTENTE_VALIDATION')
 
     def test_extension_invalide_refusee(self):
         bad_file = SimpleUploadedFile('rapport.exe', b'content', content_type='application/octet-stream')
@@ -152,7 +152,7 @@ class LivrableTests(TestCase):
         )
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         livrable.refresh_from_db()
-        self.assertEqual(livrable.statut, 'REFUSE')
+        self.assertEqual(livrable.statut, 'REJETE')
 
     def test_refus_sans_remarques_echoue(self):
         livrable = Livrable.objects.create(

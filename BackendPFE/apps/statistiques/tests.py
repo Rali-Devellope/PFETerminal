@@ -208,7 +208,7 @@ class DashboardEncadrantTests(TestCase):
         Livrable.objects.create(
             pfe=pfe, type='rapport',
             fichier=SimpleUploadedFile('r.pdf', b'%PDF-1.4', content_type='application/pdf'),
-            statut='EN_ATTENTE',
+            statut='EN_ATTENTE_VALIDATION',
         )
         self._auth()
         r = self.client.get(
