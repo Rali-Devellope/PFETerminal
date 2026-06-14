@@ -151,9 +151,9 @@ def reporter_soutenance(soutenance):
 
 
 def affecter_jury(soutenance, jury_ids, president_id=None):
-    membres = CustomUser.objects.filter(pk__in=jury_ids, role='jury')
-    if membres.count() != len(jury_ids):
-        raise ValidationError("Un ou plusieurs membres du jury sont invalides.")
+    membres = CustomUser.objects.filter(pk__in=jury_ids, is_active=True)
+    if membres.count() != len(set(jury_ids)):
+        raise ValidationError("Un ou plusieurs membres du jury sont introuvables ou inactifs.")
     if membres.count() < 2:
         raise ValidationError("Il faut au moins 2 membres dans le jury.")
     soutenance.membres_jury.set(membres)
