@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { useNotifStore } from '../store/notifStore'
 import { login as apiLogin, logout as apiLogout } from '../api/auth'
 import { ROLE_DASHBOARDS } from '../components/ProtectedRoute'
 import queryClient from '../queryClient'
@@ -7,9 +8,11 @@ import queryClient from '../queryClient'
 export function useAuth() {
   const navigate = useNavigate()
   const { setAuth, logout: clearAuth, user, refreshToken } = useAuthStore()
+  const { reset: resetNotifs } = useNotifStore()
 
   const login = async (email, password) => {
     queryClient.clear()
+    resetNotifs()
     const { data } = await apiLogin(email, password)
     const { user, access, refresh } = data.data
     setAuth(user, access, refresh)
@@ -27,6 +30,7 @@ export function useAuth() {
       if (refreshToken) await apiLogout(refreshToken)
     } finally {
       queryClient.clear()
+      resetNotifs()
       clearAuth()
       navigate('/login', { replace: true })
     }

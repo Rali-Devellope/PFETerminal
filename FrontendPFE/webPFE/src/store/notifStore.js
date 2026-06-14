@@ -29,4 +29,8 @@ export const useNotifStore = create((set) => ({
       notifications: state.notifications.map((n) => ({ ...n, lu: true })),
       unreadCount: 0,
     })),
+
+  setUnread: (count) => set({ unreadCount: count }),
+
+  reset: () => set({ notifications: [], unreadCount: 0 }),
 }))
