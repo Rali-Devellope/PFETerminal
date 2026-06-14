@@ -14,5 +14,6 @@ export const getProfile = () =>
 
 export const getUsers = () => api.get('/auth/users/list/')
 export const getEtudiants = () => api.get('/auth/users/etudiants/')
+export const getJuryUsers = () => api.get('/auth/users/jury/')
 export const createUser = (data) => api.post('/auth/users/', data)
 export const updateUser = (id, data) => api.patch(`/auth/users/${id}/`, data)

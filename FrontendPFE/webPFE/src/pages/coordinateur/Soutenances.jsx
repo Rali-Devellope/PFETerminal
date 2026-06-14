@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import DashboardLayout from '../../components/Layout/DashboardLayout'
 import Card from '../../components/UI/Card'
 import Badge from '../../components/UI/Badge'
-import { getSoutenances, planifierSoutenance, affecterJury, calculerNoteFinale, telechargerPlanning, getFilieres, getSessionPreview, planifierSession } from '../../api/soutenances'
+import { getSoutenances, planifierSoutenance, affecterJury, calculerNoteFinale, autoriserSoutenance, reporterSoutenance, cloturerSession, telechargerPlanning, getFilieres, getSessionPreview, planifierSession } from '../../api/soutenances'
 import { getPFEs, getAnneeActive, setDateLimiteSoutenance } from '../../api/pfe'
-import { getUsers } from '../../api/auth'
+import { getJuryUsers } from '../../api/auth'
 import { COORD_NAV } from './Dashboard'
 import { PVButton, ReleveButton } from '../../components/UI/PdfButtons'
 
@@ -26,12 +26,13 @@ export default function CoordinateurSoutenances() {
   const [formError, setFormError] = useState('')
   const [showDeadlineForm, setShowDeadlineForm] = useState(false)
   const [deadlineInput, setDeadlineInput] = useState('')
+  const [showCloture, setShowCloture] = useState(false)
 
   const NAV_ITEMS = COORD_NAV(t)
 
   const { data: soutRes, isLoading } = useQuery({ queryKey: ['soutenances'], queryFn: () => getSoutenances() })
   const { data: pfeRes } = useQuery({ queryKey: ['pfe-list'], queryFn: () => getPFEs(), enabled: showForm && formTab === 'individuelle' })
-  const { data: usersRes } = useQuery({ queryKey: ['users'], queryFn: () => getUsers(), enabled: !!juryTarget })
+  const { data: usersRes } = useQuery({ queryKey: ['jury-users'], queryFn: getJuryUsers, enabled: !!juryTarget })
   const { data: anneeRes } = useQuery({ queryKey: ['annee-active'], queryFn: getAnneeActive })
   const { data: filieresRes } = useQuery({ queryKey: ['filieres'], queryFn: getFilieres, enabled: showForm && formTab === 'session' })
   const { data: previewRes } = useQuery({
@@ -44,8 +45,7 @@ export default function CoordinateurSoutenances() {
   const soutsArr = Array.isArray(soutenances) ? soutenances : []
   const pfes = pfeRes?.data?.results ?? pfeRes?.data?.data ?? []
   const pfesArr = Array.isArray(pfes) ? pfes : []
-  const users = usersRes?.data?.results ?? usersRes?.data?.data ?? usersRes?.data ?? []
-  const juryUsers = Array.isArray(users) ? users.filter((u) => u.role === 'jury') : []
+  const juryUsers = Array.isArray(usersRes?.data) ? usersRes.data : []
   const anneeActive = anneeRes?.data?.data ?? null
   const dateLimit = anneeActive?.date_limite_soutenance ?? null
 
@@ -66,12 +66,15 @@ export default function CoordinateurSoutenances() {
     onError: (e) => setFormError(e.response?.data?.error?.message ?? 'Erreur lors de la planification'),
   })
 
+  const [juryError, setJuryError] = useState('')
+
   const juryMut = useMutation({
     mutationFn: ({ id, jury_ids, president_id }) => affecterJury(id, { jury_ids, president_id }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['soutenances'] })
-      setJuryTarget(null); setSelectedJury([]); setSelectedPresident(null)
+      setJuryTarget(null); setSelectedJury([]); setSelectedPresident(null); setJuryError('')
     },
+    onError: (e) => setJuryError(e.response?.data?.error?.message ?? e.response?.data?.jury_ids?.[0] ?? 'Erreur lors de l\'affectation'),
   })
 
   const noteMut = useMutation({
@@ -99,6 +102,26 @@ export default function CoordinateurSoutenances() {
     onError: (e) => setSessionError(e.response?.data?.error?.message ?? 'Erreur'),
   })
 
+  const autoriserMut = useMutation({
+    mutationFn: autoriserSoutenance,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['soutenances'] }),
+  })
+
+  const reporterMut = useMutation({
+    mutationFn: reporterSoutenance,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['soutenances'] }),
+  })
+
+  const clotureMut = useMutation({
+    mutationFn: cloturerSession,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['soutenances'] })
+      qc.invalidateQueries({ queryKey: ['pfe-list'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-coord'] })
+      setShowCloture(false)
+    },
+  })
+
   const filieres = filieresRes?.data?.data ?? []
   const previewStudents = previewRes?.data?.data ?? []
 
@@ -113,34 +136,84 @@ export default function CoordinateurSoutenances() {
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
-      <div className="flex items-start justify-between mb-6">
+
+      {/* Modal confirmation clôture */}
+      {showCloture && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: '#fef2f2' }}>
+              <svg width="22" height="22" fill="none" stroke="#b91c1c" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 className="text-base font-bold mb-2" style={{ color: '#1a2744' }}>
+              {t('coordinateur.cloture_title')}
+            </h3>
+            <p className="text-sm text-gray-500 mb-1">{t('coordinateur.cloture_annee')} : <strong>{anneeActive?.libelle}</strong></p>
+            <p className="text-sm text-gray-400 mb-5">{t('coordinateur.cloture_warn')}</p>
+            {clotureMut.isError && (
+              <p className="text-xs text-red-600 mb-3">{clotureMut.error?.response?.data?.error?.message ?? 'Erreur'}</p>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setShowCloture(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm border font-medium"
+                style={{ borderColor: '#e5e7eb', color: '#6b7280' }}>
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => clotureMut.mutate({ annee_academique_id: anneeActive.id })}
+                disabled={clotureMut.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: '#b91c1c', opacity: clotureMut.isPending ? 0.7 : 1 }}>
+                {clotureMut.isPending ? t('coordinateur.cloture_loading') : t('coordinateur.cloture_confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1a2744' }}>{t('coordinateur.souts_title')}</h1>
           <p className="text-sm text-gray-500 mt-1">{t('coordinateur.souts_sub')}</p>
         </div>
-        <button onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
-          style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)', boxShadow: '0 4px 12px rgba(45,184,75,0.3)' }}>
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            {showForm ? <line x1="18" y1="6" x2="6" y2="18"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
-          </svg>
-          {showForm ? t('common.cancel') : t('coordinateur.planifier_btn')}
-        </button>
-        <button
-          onClick={async () => {
-            const { data } = await telechargerPlanning()
-            const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
-            const a = document.createElement('a'); a.href = url; a.download = 'planning_soutenances.pdf'; a.click()
-            URL.revokeObjectURL(url)
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
-          style={{ backgroundColor: '#faf5ff', color: '#7e22ce' }}>
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Planning PDF
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+            style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)', boxShadow: '0 4px 12px rgba(45,184,75,0.3)' }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              {showForm ? <line x1="18" y1="6" x2="6" y2="18"/> : <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
+            </svg>
+            {showForm ? t('common.cancel') : t('coordinateur.planifier_btn')}
+          </button>
+          <button
+            onClick={async () => {
+              const { data } = await telechargerPlanning()
+              const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+              const a = document.createElement('a'); a.href = url; a.download = 'planning_soutenances.pdf'; a.click()
+              URL.revokeObjectURL(url)
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+            style={{ backgroundColor: '#faf5ff', color: '#7e22ce' }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {t('coordinateur.planning_pdf')}
+          </button>
+          {anneeActive && (
+            <button onClick={() => setShowCloture(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+              style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              {t('coordinateur.cloture_btn')}
+            </button>
+          )}
+        </div>
       </div>
 
       {anneeActive && (
@@ -367,12 +440,18 @@ export default function CoordinateurSoutenances() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <h3 className="text-base font-bold mb-1" style={{ color: '#1a2744' }}>{t('coordinateur.affecter_jury')}</h3>
-            <p className="text-sm text-gray-400 mb-4">{juryTarget.pfe?.etudiant?.prenom} {juryTarget.pfe?.etudiant?.nom}</p>
+            <p className="text-sm text-gray-400 mb-1">{juryTarget.pfe?.etudiant?.prenom} {juryTarget.pfe?.etudiant?.nom}</p>
+            <p className="text-xs mb-3" style={{ color: '#f59e0b' }}>{t('coordinateur.jury_min2')}</p>
+            {juryError && (
+              <div className="mb-3 px-3 py-2 rounded-xl text-xs font-medium" style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
+                {juryError}
+              </div>
+            )}
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {juryUsers.length === 0 && <p className="text-sm text-gray-400">{t('coordinateur.no_jury')}</p>}
               {juryUsers.map((u) => (
                 <label key={u.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-gray-50">
-                  <input type="checkbox" checked={selectedJury.includes(u.id)} onChange={() => toggleJury(u.id)} className="rounded" />
+                  <input type="checkbox" checked={selectedJury.includes(u.id)} onChange={() => { toggleJury(u.id); setJuryError('') }} className="rounded" />
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
                        style={{ backgroundColor: '#1e3a5f' }}>
                     {u.prenom?.[0]}{u.nom?.[0]}
@@ -397,15 +476,15 @@ export default function CoordinateurSoutenances() {
               ))}
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setJuryTarget(null); setSelectedJury([]) }}
+              <button onClick={() => { setJuryTarget(null); setSelectedJury([]); setSelectedPresident(null); setJuryError('') }}
                 className="flex-1 py-2.5 rounded-xl text-sm border font-medium" style={{ borderColor: '#e5e7eb', color: '#6b7280' }}>
                 {t('common.cancel')}
               </button>
               <button onClick={() => juryMut.mutate({ id: juryTarget.id, jury_ids: selectedJury, president_id: selectedPresident })}
-                disabled={selectedJury.length === 0 || juryMut.isPending}
+                disabled={selectedJury.length < 2 || juryMut.isPending}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-                style={{ backgroundColor: selectedJury.length > 0 ? '#2db84b' : '#86c99a' }}>
-                {t('common.confirm')} ({selectedJury.length})
+                style={{ backgroundColor: selectedJury.length >= 2 ? '#2db84b' : '#86c99a' }}>
+                {juryMut.isPending ? t('coordinateur.planning') : `${t('common.confirm')} (${selectedJury.length})`}
               </button>
             </div>
           </div>
@@ -447,23 +526,81 @@ export default function CoordinateurSoutenances() {
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
+                  {/* EN_ATTENTE_AUTORISATION — Jury + Autoriser + Reporter */}
+                  {s.statut === 'EN_ATTENTE_AUTORISATION' && (
+                    <>
+                      <button
+                        onClick={() => { setJuryTarget(s); setSelectedJury(s.membres_jury?.map((m) => m.id) ?? []); setSelectedPresident(s.president_jury?.id ?? null) }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ backgroundColor: '#faf5ff', color: '#7e22ce' }}>
+                        {t('coordinateur.jury_btn')}
+                      </button>
+                      <button
+                        onClick={() => autoriserMut.mutate(s.id)}
+                        disabled={autoriserMut.isPending}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                        style={{ background: 'linear-gradient(135deg, #2db84b, #1e8c36)', opacity: autoriserMut.isPending ? 0.7 : 1 }}>
+                        {t('coordinateur.autoriser_btn')}
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm(t('coordinateur.reporter_confirm'))) reporterMut.mutate(s.id) }}
+                        disabled={reporterMut.isPending}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ backgroundColor: '#fff7ed', color: '#b45309' }}>
+                        {t('coordinateur.reporter_btn')}
+                      </button>
+                    </>
+                  )}
+                  {/* PLANIFIEE — Jury + Reporter */}
                   {s.statut === 'PLANIFIEE' && (
-                    <button onClick={() => { setJuryTarget(s); setSelectedJury(s.membres_jury?.map((m) => m.id) ?? []); setSelectedPresident(s.president_jury?.id ?? null) }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ backgroundColor: '#faf5ff', color: '#7e22ce' }}>
-                      {t('coordinateur.jury_btn')}
-                    </button>
+                    <>
+                      <button onClick={() => { setJuryTarget(s); setSelectedJury(s.membres_jury?.map((m) => m.id) ?? []); setSelectedPresident(s.president_jury?.id ?? null) }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ backgroundColor: '#faf5ff', color: '#7e22ce' }}>
+                        {t('coordinateur.jury_btn')}
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm(t('coordinateur.reporter_confirm'))) reporterMut.mutate(s.id) }}
+                        disabled={reporterMut.isPending}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ backgroundColor: '#fff7ed', color: '#b45309' }}>
+                        {t('coordinateur.reporter_btn')}
+                      </button>
+                    </>
                   )}
-                  {s.statut === 'TERMINEE' && s.note_finale == null && (
-                    <button onClick={() => noteMut.mutate(s.id)} disabled={noteMut.isPending}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-                      style={{ backgroundColor: '#0ea5e9' }}>
-                      {t('coordinateur.calculer')}
-                    </button>
-                  )}
+                  {/* TERMINEE sans note — qui a noté + Calculer */}
+                  {s.statut === 'TERMINEE' && s.note_finale == null && (() => {
+                    const notesJury = s.notes?.filter((n) => n.type === 'jury') ?? []
+                    const nbJury = s.membres_jury?.length ?? 0
+                    const allNoted = nbJury > 0 && notesJury.length >= nbJury
+                    return (
+                      <div className="text-right space-y-1">
+                        {s.membres_jury?.map((m) => {
+                          const hasNoted = notesJury.some((n) => n.evaluateur?.id === m.id)
+                          return (
+                            <div key={m.id} className="flex items-center gap-1.5 justify-end">
+                              <span className="text-[10px] text-gray-500">{m.prenom} {m.nom}</span>
+                              {hasNoted
+                                ? <span className="text-[10px] font-bold" style={{ color: '#15803d' }}>✓</span>
+                                : <span className="text-[10px] font-bold" style={{ color: '#94a3b8' }}>○</span>
+                              }
+                            </div>
+                          )
+                        })}
+                        <button onClick={() => noteMut.mutate(s.id)}
+                          disabled={noteMut.isPending || !allNoted}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white mt-1"
+                          style={{ backgroundColor: allNoted ? '#0ea5e9' : '#94a3b8', opacity: noteMut.isPending ? 0.7 : 1 }}
+                          title={!allNoted ? t('coordinateur.calculer_disabled') : ''}>
+                          {t('coordinateur.calculer')}
+                        </button>
+                      </div>
+                    )
+                  })()}
+                  {/* TERMINEE avec note — PDF */}
                   {s.statut === 'TERMINEE' && s.note_finale != null && (
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap justify-end">
                       <PVButton soutenanceId={s.id} />
                       <ReleveButton soutenanceId={s.id} />
                     </div>

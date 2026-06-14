@@ -15,15 +15,32 @@ function InfoRow({ label, value }) {
   )
 }
 
-function NoteBar({ note }) {
-  const pct = Math.min((note / 20) * 100, 100)
+function NoteBar({ note, t }) {
+  const admis = note >= 10
+  const pct   = Math.min((note / 20) * 100, 100)
   const color = note >= 16 ? '#15803d' : note >= 14 ? '#2db84b' : note >= 12 ? '#f59e0b' : note >= 10 ? '#d97706' : '#ef4444'
-  const mention = note >= 16 ? 'Très bien' : note >= 14 ? 'Bien' : note >= 12 ? 'Assez bien' : note >= 10 ? 'Passable' : 'Insuffisant'
+  const mention = note >= 16 ? t('soutenance_page.mention_tb') : note >= 14 ? t('soutenance_page.mention_b') : note >= 12 ? t('soutenance_page.mention_ab') : note >= 10 ? t('soutenance_page.mention_p') : t('soutenance_page.mention_i')
+
   return (
     <div>
+      {/* Décision ADMIS / AJOURNÉ */}
+      <div className="flex items-center justify-center mb-5 py-3 rounded-xl"
+           style={{ backgroundColor: admis ? '#f0fdf4' : '#fef2f2', border: `1px solid ${admis ? '#bbf7d0' : '#fecaca'}` }}>
+        <div className="flex items-center gap-2">
+          {admis
+            ? <svg width="20" height="20" fill="none" stroke="#15803d" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            : <svg width="20" height="20" fill="none" stroke="#b91c1c" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          }
+          <span className="text-base font-bold" style={{ color: admis ? '#15803d' : '#b91c1c' }}>
+            {admis ? t('soutenance_page.decision_admis') : t('soutenance_page.decision_ajourne')}
+          </span>
+        </div>
+      </div>
+
+      {/* Note + mention */}
       <div className="flex items-end justify-between mb-3">
         <div>
-          <p className="text-xs text-gray-400 mb-1">Note finale</p>
+          <p className="text-xs text-gray-400 mb-1">{t('soutenance_page.note_finale')}</p>
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold" style={{ color }}>{note}</span>
             <span className="text-sm text-gray-400 font-medium">/ 20</span>
@@ -42,7 +59,6 @@ function NoteBar({ note }) {
   )
 }
 
-const TYPE_NOTE_LABELS = { jury: 'Jury', encadrant: 'Encadrant', finale: 'Finale' }
 
 export default function EtudiantSoutenance() {
   const { t } = useTranslation()
@@ -156,38 +172,11 @@ export default function EtudiantSoutenance() {
             )}
           </Card>
 
-          {/* Notes individuelles */}
-          {s.notes?.length > 0 && (
-            <Card title="Notes des évaluateurs"
-              icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}>
-              <div className="space-y-2">
-                {s.notes.map((n) => (
-                  <div key={n.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-                       style={{ backgroundColor: '#f8fafc' }}>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold" style={{ color: '#1a2744' }}>
-                        {n.evaluateur.prenom} {n.evaluateur.nom}
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {TYPE_NOTE_LABELS[n.type] ?? n.type}
-                        {n.commentaire && ` · ${n.commentaire}`}
-                      </p>
-                    </div>
-                    <span className="text-sm font-bold flex-shrink-0"
-                          style={{ color: n.valeur >= 10 ? '#15803d' : '#b91c1c' }}>
-                      {n.valeur}<span className="text-xs font-normal text-gray-400">/20</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Note finale */}
+          {/* Résultat final — notes individuelles confidentielles, jamais affichées */}
           {s.note_finale != null && (
-            <Card title="Résultat final"
+            <Card title={t('soutenance_page.card_resultat')}
               icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>}>
-              <NoteBar note={s.note_finale} />
+              <NoteBar note={s.note_finale} t={t} />
               {s.note_finale >= 10 && (
                 <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50">
                   <ReleveButton soutenanceId={s.id} />

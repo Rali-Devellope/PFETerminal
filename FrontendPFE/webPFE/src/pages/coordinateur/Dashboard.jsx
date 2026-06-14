@@ -58,7 +58,7 @@ function AlertDeadlines({ alertes }) {
         <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
       <div>
-        <p className="text-sm font-semibold" style={{ color: '#92400e' }}>Deadlines dans moins de 7 jours</p>
+        <p className="text-sm font-semibold" style={{ color: '#92400e' }}>{t('coordinateur.deadlines_alert')}</p>
         <div className="flex flex-wrap gap-3 mt-2">
           {alertes.map((a) => (
             <span key={a.type_livrable} className="text-xs font-medium px-2.5 py-1 rounded-lg"
@@ -159,46 +159,46 @@ export default function CoordinateurDashboard() {
       {/* 6 KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
         <KpiCard loading={dashLoading}
-          label="PFE en cours"
+          label={t('coordinateur.kpi_pfe_en_cours')}
           value={dash.pfe_en_cours}
-          sub={stats.total_pfe ? `${stats.total_pfe} au total (tous statuts)` : undefined}
+          sub={stats.total_pfe ? t('coordinateur.kpi_pfe_total', { count: stats.total_pfe }) : undefined}
           color="#2db84b" bg="#f0fdf4"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>}
           to="/coordinateur/sujets" />
 
         <KpiCard loading={dashLoading}
-          label="Sujets en attente de validation"
+          label={t('coordinateur.kpi_sujets_attente')}
           value={dash.sujets_en_attente}
           color="#f59e0b" bg="#fffbeb"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
           to="/coordinateur/sujets" />
 
         <KpiCard loading={dashLoading}
-          label="Livrables à valider"
+          label={t('coordinateur.kpi_livrables')}
           value={dash.livrables_en_attente}
           color="#0ea5e9" bg="#f0f9ff"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
 
         <KpiCard loading={dashLoading}
-          label="PFE sans encadrant"
+          label={t('coordinateur.kpi_sans_encadrant')}
           value={dash.pfe_sans_encadrant}
-          sub={dash.pfe_sans_encadrant > 0 ? 'Affectation requise' : 'Tous encadrés ✓'}
+          sub={dash.pfe_sans_encadrant > 0 ? t('coordinateur.kpi_affectation_requise') : t('coordinateur.kpi_tous_encadres')}
           color={dash.pfe_sans_encadrant > 0 ? '#ef4444' : '#2db84b'}
           bg={dash.pfe_sans_encadrant > 0 ? '#fef2f2' : '#f0fdf4'}
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>} />
 
         <KpiCard loading={dashLoading}
-          label="Sans soutenance planifiée"
+          label={t('coordinateur.kpi_sans_soutenance')}
           value={dash.etudiants_sans_soutenance}
-          sub={dash.etudiants_sans_soutenance > 0 ? 'À planifier' : undefined}
+          sub={dash.etudiants_sans_soutenance > 0 ? t('coordinateur.kpi_a_planifier') : undefined}
           color="#7e22ce" bg="#faf5ff"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
           to="/coordinateur/soutenances" />
 
         <KpiCard loading={false}
-          label="Rapports validés"
+          label={t('coordinateur.kpi_rapports')}
           value={`${pctRapport}%`}
-          sub={stats.moyenne_notes ? `Moyenne notes : ${stats.moyenne_notes}/20` : undefined}
+          sub={stats.moyenne_notes ? t('coordinateur.kpi_moyenne', { note: stats.moyenne_notes }) : undefined}
           color="#1a2744" bg="#f8fafc"
           icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>} />
       </div>
@@ -207,7 +207,7 @@ export default function CoordinateurDashboard() {
       {!dashLoading && dash.pfe_en_cours > 0 && (
         <div className="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>Progression dépôt des rapports</p>
+            <p className="text-sm font-semibold" style={{ color: '#1a2744' }}>{t('coordinateur.kpi_progression')}</p>
             <span className="text-sm font-bold" style={{ color: pctRapport === 100 ? '#166534' : '#1a2744' }}>
               {pctRapport}%
             </span>
@@ -215,7 +215,10 @@ export default function CoordinateurDashboard() {
           <ProgressBar pct={pctRapport}
             color={pctRapport >= 80 ? '#2db84b' : pctRapport >= 50 ? '#f59e0b' : '#ef4444'} />
           <p className="text-xs text-gray-400 mt-1.5">
-            Rapport validé pour {Math.round(dash.pfe_en_cours * pctRapport / 100)} / {dash.pfe_en_cours} PFE en cours
+            {t('coordinateur.kpi_progression_detail', {
+              done: Math.round(dash.pfe_en_cours * pctRapport / 100),
+              total: dash.pfe_en_cours,
+            })}
           </p>
         </div>
       )}
@@ -225,17 +228,17 @@ export default function CoordinateurDashboard() {
 
         {/* Sujets à valider */}
         <Card
-          title={`Sujets à valider (${sujetsArr.length})`}
+          title={t('coordinateur.kpi_sujets_title', { count: sujetsArr.length })}
           action={
             <Link to="/coordinateur/sujets"
               className="text-xs font-medium px-2.5 py-1 rounded-lg"
               style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
-              Voir tout
+              {t('coordinateur.voir_tout')}
             </Link>
           }
           icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>
           {sujetsArr.length === 0
-            ? <p className="text-sm text-gray-400 py-2">Aucun sujet en attente ✓</p>
+            ? <p className="text-sm text-gray-400 py-2">{t('coordinateur.no_sujets_attente')}</p>
             : <div className="space-y-2">
                 {sujetsArr.slice(0, 5).map((s) => (
                   <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl"
@@ -255,7 +258,7 @@ export default function CoordinateurDashboard() {
                 ))}
                 {sujetsArr.length > 5 && (
                   <p className="text-xs text-gray-400 text-center pt-1">
-                    + {sujetsArr.length - 5} autres
+                    {t('coordinateur.plus_autres', { count: sujetsArr.length - 5 })}
                   </p>
                 )}
               </div>
@@ -274,7 +277,7 @@ export default function CoordinateurDashboard() {
           }
           icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}>
           {soutsArr.length === 0
-            ? <p className="text-sm text-gray-400 py-2">Aucune soutenance planifiée à venir</p>
+            ? <p className="text-sm text-gray-400 py-2">{t('coordinateur.no_souts_avenir')}</p>
             : <div className="space-y-2">
                 {soutsArr.map((s) => {
                   const d = new Date(s.date)
@@ -316,7 +319,7 @@ export default function CoordinateurDashboard() {
         {/* Activité récente — livrables en attente */}
         {(dash.livrables_en_attente > 0 || dash.pfe_sans_encadrant > 0) && (
           <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5">
-            <p className="text-sm font-semibold mb-4" style={{ color: '#1a2744' }}>Actions requises</p>
+            <p className="text-sm font-semibold mb-4" style={{ color: '#1a2744' }}>{t('coordinateur.actions_requises')}</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {dash.livrables_en_attente > 0 && (
                 <div className="flex items-center gap-4 p-4 rounded-xl" style={{ backgroundColor: '#f0f9ff' }}>
@@ -329,9 +332,9 @@ export default function CoordinateurDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold" style={{ color: '#0369a1' }}>
-                      {dash.livrables_en_attente} livrable{dash.livrables_en_attente > 1 ? 's' : ''} en attente
+                      {t('coordinateur.action_livrables', { count: dash.livrables_en_attente })}
                     </p>
-                    <p className="text-xs text-gray-500">À transmettre aux encadrants pour validation</p>
+                    <p className="text-xs text-gray-500">{t('coordinateur.action_livrables_sub')}</p>
                   </div>
                 </div>
               )}
@@ -346,9 +349,9 @@ export default function CoordinateurDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold" style={{ color: '#b91c1c' }}>
-                      {dash.pfe_sans_encadrant} PFE sans encadrant
+                      {t('coordinateur.action_encadrant', { count: dash.pfe_sans_encadrant })}
                     </p>
-                    <p className="text-xs text-gray-500">Affectation d'encadrant requise</p>
+                    <p className="text-xs text-gray-500">{t('coordinateur.action_encadrant_sub')}</p>
                   </div>
                   <Link to="/coordinateur/sujets"
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 text-white"

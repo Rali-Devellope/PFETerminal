@@ -13,7 +13,7 @@ from .serializers import (
 from .filters import SoutenanceFilter
 from .services import (
     planifier_soutenance, planifier_session_filiere, preview_session_filiere,
-    affecter_jury, autoriser_soutenance,
+    affecter_jury, autoriser_soutenance, reporter_soutenance,
     soumettre_note, calculer_note_finale, cloturer_session,
     generer_pv_pdf, generer_releve_notes, generer_attestation, generer_planning_pdf,
     generer_convocation_pdf,
@@ -99,6 +99,14 @@ class SoutenanceViewSet(viewsets.ReadOnlyModelViewSet):
         return success_response(
             data=SoutenanceSerializer(soutenance).data,
             status_code=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['post'])
+    def reporter(self, request, pk=None):
+        soutenance = reporter_soutenance(self.get_object())
+        return success_response(
+            data=SoutenanceSerializer(soutenance).data,
+            message='Soutenance reportée. L\'étudiant a été notifié.'
         )
 
     @action(detail=True, methods=['post'])

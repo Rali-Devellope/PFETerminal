@@ -134,6 +134,22 @@ def autoriser_soutenance(soutenance):
     return soutenance
 
 
+def reporter_soutenance(soutenance):
+    if soutenance.statut not in ('EN_ATTENTE_AUTORISATION', 'PLANIFIEE', 'EN_COURS'):
+        raise ValidationError("Seules les soutenances planifiées ou en cours peuvent être reportées.")
+    soutenance.statut = 'REPORTEE'
+    soutenance.save(update_fields=['statut', 'updated_at'])
+    from apps.notifications.services import notifier
+    notifier(
+        soutenance.pfe.etudiant,
+        'Soutenance reportée',
+        f'Votre soutenance du {soutenance.date.strftime("%d/%m/%Y")} a été reportée. Vous serez informé(e) de la nouvelle date.',
+        'info',
+        envoyer_mail=True,
+    )
+    return soutenance
+
+
 def affecter_jury(soutenance, jury_ids, president_id=None):
     membres = CustomUser.objects.filter(pk__in=jury_ids, role='jury')
     if membres.count() != len(jury_ids):

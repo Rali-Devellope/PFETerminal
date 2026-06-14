@@ -47,6 +47,13 @@ class EtudiantsListView(generics.ListAPIView):
     queryset = CustomUser.objects.filter(role='etudiant', is_active=True).order_by('nom', 'prenom')
 
 
+class JuryUsersView(generics.ListAPIView):
+    permission_classes = [IsAdminOrCoordinateur]
+    serializer_class = UserSerializer
+    pagination_class = None
+    queryset = CustomUser.objects.filter(role='jury', is_active=True).order_by('nom', 'prenom')
+
+
 class UserDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAdmin]
     queryset = CustomUser.objects.all()

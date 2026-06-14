@@ -9,6 +9,7 @@ export const affecterJury         = (id, data) => api.post(`/soutenances/${id}/a
 export const soumettreNote        = (id, data) => api.post(`/soutenances/${id}/noter/`, data)
 export const calculerNoteFinale   = (id)       => api.post(`/soutenances/${id}/calculer_finale/`)
 export const autoriserSoutenance  = (id)       => api.post(`/soutenances/${id}/autoriser/`)
+export const reporterSoutenance   = (id)       => api.post(`/soutenances/${id}/reporter/`)
 export const cloturerSession      = (data)     => api.post('/soutenances/cloturer-session/', data)
 
 export const telechargerPV          = (id) => api.get(`/soutenances/${id}/pv_pdf/`,         { responseType: 'blob' })
