@@ -43,6 +43,12 @@ def stats_encadrant(request, pk):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def stats_encadrant_me(request):
+    return Response({'success': True, 'data': calculer_stats_encadrant(request.user.pk)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def classement(request):
     filiere = request.query_params.get('filiere')
     annee = request.query_params.get('annee')

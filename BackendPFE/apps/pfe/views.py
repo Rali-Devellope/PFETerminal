@@ -239,7 +239,7 @@ class BibliothequeViewSet(viewsets.ReadOnlyModelViewSet):
         if annee:
             qs = qs.filter(annee=annee)
         if encadrant:
-            qs = qs.filter(encadrant_acad_id=encadrant)
+            qs = qs.filter(Q(encadrant_acad_id=encadrant) | Q(encadrant_entr_id=encadrant))
         if mention:
             qs = qs.filter(mention=mention)
         return qs

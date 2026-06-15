@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     NotificationListView, marquer_lu, marquer_tout_lu,
-    conversations, messages_avec, envoyer_message, non_lus_count,
+    conversations, messages_avec, envoyer_message, non_lus_count, contacts_disponibles,
 )
 
 urlpatterns = [
@@ -12,4 +12,5 @@ urlpatterns = [
     path('messages/conversations/',              conversations,                  name='message-conversations'),
     path('messages/avec/<int:user_id>/',         messages_avec,                  name='messages-avec'),
     path('messages/non-lus/',                    non_lus_count,                  name='messages-non-lus'),
+    path('messages/contacts/',                   contacts_disponibles,            name='messages-contacts'),
 ]

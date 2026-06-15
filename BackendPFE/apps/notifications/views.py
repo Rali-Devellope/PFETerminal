@@ -109,3 +109,37 @@ def envoyer_message(request):
 def non_lus_count(request):
     count = Message.objects.filter(destinataire=request.user, lu=False).count()
     return success_response(data={'count': count})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def contacts_disponibles(request):
+    """Retourne les contacts autorisés selon le rôle de l'utilisateur."""
+    user = request.user
+    role = user.role
+
+    if role == 'etudiant':
+        from apps.pfe.models import PFE
+        pfe = PFE.objects.filter(etudiant=user).select_related('encadrant_acad', 'encadrant_entr').first()
+        contacts = []
+        if pfe:
+            if pfe.encadrant_acad:
+                contacts.append(pfe.encadrant_acad)
+            if pfe.encadrant_entr and pfe.encadrant_entr != pfe.encadrant_acad:
+                contacts.append(pfe.encadrant_entr)
+    elif role in ('encadrant_acad', 'encadrant_entr'):
+        from apps.pfe.models import PFE
+        pfe_qs = PFE.objects.filter(
+            Q(encadrant_acad=user) | Q(encadrant_entr=user)
+        ).select_related('etudiant')
+        seen = set()
+        contacts = []
+        for p in pfe_qs:
+            if p.etudiant and p.etudiant.pk not in seen:
+                contacts.append(p.etudiant)
+                seen.add(p.etudiant.pk)
+    else:
+        contacts = list(CustomUser.objects.filter(is_active=True).exclude(pk=user.pk).order_by('nom', 'prenom'))
+
+    from apps.authentication.serializers import UserSerializer
+    return success_response(data=UserSerializer(contacts, many=True).data)

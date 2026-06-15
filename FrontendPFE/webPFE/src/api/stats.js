@@ -6,6 +6,7 @@ export const getDashboardCoordinateur = (anneeId) =>
 export const getStatsFilieres = () => api.get('/stats/filieres/')
 export const getStatsFiliere = (filiere) => api.get(`/stats/filiere/${filiere}/`)
 export const getStatsEncadrant = (id) => api.get(`/stats/encadrant/${id}/`)
+export const getStatsEncadrantMe = () => api.get('/stats/encadrant/me/')
 export const getClassement = (params) => api.get('/stats/classement/', { params })
 export const exportCSV = () => api.get('/stats/export_csv/', { responseType: 'blob' })
 export const exportExcel = () => api.get('/stats/export_excel/', { responseType: 'blob' })

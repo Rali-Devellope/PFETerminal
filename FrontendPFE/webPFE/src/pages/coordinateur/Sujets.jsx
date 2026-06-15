@@ -54,6 +54,7 @@ export default function CoordinateurSujets() {
   const [refusTarget, setRefusTarget] = useState(null)
   const [affecterTarget, setAffecterTarget] = useState(null)
   const [selectedEncadrant, setSelectedEncadrant] = useState('')
+  const [selectedEncadrantEntr, setSelectedEncadrantEntr] = useState('')
 
   const NAV_ITEMS = COORD_NAV(t)
   const { filieres: filieresData } = useFilieres({ activeOnly: false })
@@ -75,12 +76,29 @@ export default function CoordinateurSujets() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['sujets'] }); setRefusTarget(null) },
   })
 
-  const affecterMut = useMutation({
+  const closeAffecter = () => {
+    setAffecterTarget(null)
+    setSelectedEncadrant('')
+    setSelectedEncadrantEntr('')
+  }
+
+  const affecterEntrMut = useMutation({
     mutationFn: ({ id, encadrant_id }) => affecterEncadrant(id, { encadrant_id }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sujets'] })
-      setAffecterTarget(null)
-      setSelectedEncadrant('')
+      closeAffecter()
+    },
+  })
+
+  const affecterMut = useMutation({
+    mutationFn: ({ id, encadrant_id }) => affecterEncadrant(id, { encadrant_id }),
+    onSuccess: (_, variables) => {
+      if (selectedEncadrantEntr) {
+        affecterEntrMut.mutate({ id: variables.id, encadrant_id: parseInt(selectedEncadrantEntr) })
+      } else {
+        qc.invalidateQueries({ queryKey: ['sujets'] })
+        closeAffecter()
+      }
     },
   })
 
@@ -90,9 +108,8 @@ export default function CoordinateurSujets() {
     enabled: !!affecterTarget,
   })
   const allUsers = usersRes?.data?.results ?? usersRes?.data?.data ?? usersRes?.data ?? []
-  const encadrants = Array.isArray(allUsers)
-    ? allUsers.filter((u) => u.role === 'encadrant_acad' || u.role === 'encadrant_entr')
-    : []
+  const encadrantsAcad = Array.isArray(allUsers) ? allUsers.filter((u) => u.role === 'encadrant_acad') : []
+  const encadrantsEntr = Array.isArray(allUsers) ? allUsers.filter((u) => u.role === 'encadrant_entr') : []
 
   return (
     <DashboardLayout navItems={NAV_ITEMS}>
@@ -118,14 +135,15 @@ export default function CoordinateurSujets() {
               </div>
             )}
 
+            {/* ── Section encadrant académique (existante, inchangée) ── */}
             <label className="block text-xs font-semibold mb-1.5 text-gray-600">
               {t('coordinateur.select_encadrant')}
             </label>
-            {encadrants.length === 0
+            {encadrantsAcad.length === 0
               ? <p className="text-sm text-gray-400 py-2">{t('coordinateur.no_encadrants')}</p>
               : (
                 <div className="space-y-2 max-h-56 overflow-y-auto mb-4">
-                  {encadrants.map((u) => (
+                  {encadrantsAcad.map((u) => (
                     <label key={u.id}
                       className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition hover:bg-gray-50"
                       style={{ border: selectedEncadrant == u.id ? '2px solid #2db84b' : '2px solid transparent' }}>
@@ -147,18 +165,68 @@ export default function CoordinateurSujets() {
               )
             }
 
-            <div className="flex gap-2">
-              <button onClick={() => { setAffecterTarget(null); setSelectedEncadrant('') }}
+            {/* ── Section encadrant entreprise (optionnelle) ── */}
+            {affecterTarget.origine === 'entreprise' && (
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
+                <label className="block text-xs font-semibold mb-1.5 text-gray-600">
+                  Encadrant Entreprise <span className="font-normal text-gray-400">(optionnel)</span>
+                </label>
+                {encadrantsEntr.length === 0
+                  ? <p className="text-sm text-gray-400 py-2">Aucun encadrant entreprise disponible</p>
+                  : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      <label
+                        className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                        style={{ border: selectedEncadrantEntr === '' ? '2px solid #0ea5e9' : '2px solid transparent' }}>
+                        <input type="radio" name="encadrant_entr" value=""
+                          checked={selectedEncadrantEntr === ''}
+                          onChange={() => setSelectedEncadrantEntr('')}
+                          className="accent-sky-500" />
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                             style={{ backgroundColor: '#94a3b8' }}>
+                          —
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: '#1a2744' }}>Aucun</p>
+                          <p className="text-xs text-gray-400">Pas d'encadrant entreprise</p>
+                        </div>
+                      </label>
+                      {encadrantsEntr.map((u) => (
+                        <label key={u.id}
+                          className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                          style={{ border: selectedEncadrantEntr == u.id ? '2px solid #0ea5e9' : '2px solid transparent' }}>
+                          <input type="radio" name="encadrant_entr" value={u.id}
+                            checked={selectedEncadrantEntr == u.id}
+                            onChange={() => setSelectedEncadrantEntr(u.id)}
+                            className="accent-sky-500" />
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                               style={{ backgroundColor: '#0369a1' }}>
+                            {u.prenom?.[0]}{u.nom?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: '#1a2744' }}>{u.prenom} {u.nom}</p>
+                            <p className="text-xs text-gray-400">{t(`roles.${u.role}`, { defaultValue: u.role })}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )
+                }
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button onClick={closeAffecter}
                 className="flex-1 py-2.5 rounded-xl text-sm border font-medium"
                 style={{ borderColor: '#e5e7eb', color: '#6b7280' }}>
                 {t('common.cancel')}
               </button>
               <button
                 onClick={() => affecterMut.mutate({ id: affecterTarget.id, encadrant_id: parseInt(selectedEncadrant) })}
-                disabled={!selectedEncadrant || affecterMut.isPending}
+                disabled={!selectedEncadrant || affecterMut.isPending || affecterEntrMut.isPending}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style={{ backgroundColor: selectedEncadrant ? '#2db84b' : '#86c99a' }}>
-                {affecterMut.isPending ? t('coordinateur.affecter_loading') : t('coordinateur.affecter_confirm')}
+                {(affecterMut.isPending || affecterEntrMut.isPending) ? t('coordinateur.affecter_loading') : t('coordinateur.affecter_confirm')}
               </button>
             </div>
           </div>
@@ -215,6 +283,10 @@ export default function CoordinateurSujets() {
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="text-sm font-semibold" style={{ color: '#1a2744' }}>{s.titre}</span>
                     <Badge statut={s.statut} />
+                    {s.origine === 'entreprise'
+                      ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>Entreprise</span>
+                      : <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}>Académique</span>
+                    }
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-400">{s.filiere} · {s.annee}</p>

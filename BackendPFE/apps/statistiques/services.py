@@ -1,7 +1,7 @@
 import csv
 import io
 
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 
 from apps.pfe.models import PFE
 from apps.sujets.models import Sujet
@@ -65,9 +65,12 @@ def calculer_stats_encadrant(encadrant_id):
         encadrant = CustomUser.objects.get(pk=encadrant_id)
     except CustomUser.DoesNotExist:
         raise ValidationError("Encadrant introuvable.")
-    pfe_qs = PFE.objects.filter(encadrant_acad=encadrant)
+    pfe_qs = PFE.objects.filter(
+        Q(encadrant_acad=encadrant) | Q(encadrant_entr=encadrant)
+    )
     avg = Soutenance.objects.filter(
-        pfe__encadrant_acad=encadrant, note_finale__isnull=False
+        Q(pfe__encadrant_acad=encadrant) | Q(pfe__encadrant_entr=encadrant),
+        note_finale__isnull=False,
     ).aggregate(avg=Avg('note_finale'))['avg']
     return {
         'encadrant':    f"{encadrant.prenom} {encadrant.nom}",
@@ -190,7 +193,8 @@ def dashboard_encadrant(encadrant_id):
         raise ValidationError("Encadrant introuvable.")
 
     pfe_list = PFE.objects.filter(
-        encadrant_acad=encadrant, statut='EN_COURS'
+        Q(encadrant_acad=encadrant) | Q(encadrant_entr=encadrant),
+        statut='EN_COURS',
     ).select_related('etudiant').prefetch_related('livrables')
 
     etudiants = []

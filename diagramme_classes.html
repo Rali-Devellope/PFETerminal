@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Diagramme de Classes – Gestion PFE ISCAE</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #dde3ed;
+  padding: 24px;
+  min-width: 1800px;
+}
+
+/* ── TITLE ───────────────────────────────── */
+.page-title {
+  background: linear-gradient(135deg, #1a2744 0%, #1e3a5f 100%);
+  color: #fff;
+  text-align: center;
+  padding: 18px 30px;
+  border-radius: 12px 12px 0 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  box-shadow: 0 4px 20px rgba(26,39,68,.35);
+  border-bottom: 4px solid #2db84b;
+}
+
+/* ── CANVAS ──────────────────────────────── */
+.diagram {
+  position: relative;
+  width: 1750px;
+  height: 1120px;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 6px 30px rgba(0,0,0,.12);
+  overflow: hidden;
+}
+
+/* ── CLASS BOX ───────────────────────────── */
+.cls {
+  position: absolute;
+  border-radius: 9px;
+  overflow: hidden;
+  font-size: 10.5px;
+  line-height: 1.55;
+  border: 2px solid;
+}
+
+.cls-header {
+  padding: 8px 11px 6px;
+  text-align: center;
+}
+.cls-name {
+  color: #fff;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: .4px;
+}
+.cls-stereo {
+  color: rgba(255,255,255,.75);
+  font-size: 8.5px;
+  font-style: italic;
+}
+.cls-enum {
+  display: inline-block;
+  background: rgba(0,0,0,.18);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 8px;
+  color: rgba(255,255,255,.9);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.cls-body { background: #fff; }
+
+.cls-section {
+  padding: 5px 10px 6px;
+  border-top: 1.5px solid;
+}
+.cls-section.dashed { border-top-style: dashed !important; }
+
+.row {
+  display: flex;
+  gap: 4px;
+  padding: 1.2px 0;
+  align-items: baseline;
+}
+.vis  { font-weight: 700; font-size: 10px; min-width: 11px; }
+.aname { color: #111827; font-size: 10.5px; }
+.atype { color: #6b7280; font-size: 9.5px; font-style: italic; margin-left: 1px; }
+.mline { color: #1a2744; font-size: 10.5px; padding: 1.2px 0; }
+
+/* ── COLOUR THEMES ───────────────────────── */
+/* Purple */
+.col-purple { border-color: #6d28d9; box-shadow: 0 3px 14px rgba(109,40,217,.22); }
+.col-purple .cls-header  { background: linear-gradient(135deg,#6d28d9,#5b21b6); }
+.col-purple .cls-section { border-color: #ede9fe; }
+.col-purple .vis { color: #6d28d9; }
+
+/* Green */
+.col-green { border-color: #047857; box-shadow: 0 3px 14px rgba(4,120,87,.22); }
+.col-green .cls-header   { background: linear-gradient(135deg,#047857,#065f46); }
+.col-green .cls-section  { border-color: #d1fae5; }
+.col-green .vis { color: #047857; }
+
+/* Amber */
+.col-amber { border-color: #b45309; box-shadow: 0 3px 14px rgba(180,83,9,.22); }
+.col-amber .cls-header   { background: linear-gradient(135deg,#d97706,#b45309); }
+.col-amber .cls-section  { border-color: #fef3c7; }
+.col-amber .vis { color: #b45309; }
+
+/* Red */
+.col-red { border-color: #b91c1c; box-shadow: 0 3px 14px rgba(185,28,28,.22); }
+.col-red .cls-header     { background: linear-gradient(135deg,#dc2626,#b91c1c); }
+.col-red .cls-section    { border-color: #fee2e2; }
+.col-red .vis { color: #b91c1c; }
+
+/* Blue */
+.col-blue { border-color: #1d4ed8; box-shadow: 0 3px 14px rgba(29,78,216,.22); }
+.col-blue .cls-header    { background: linear-gradient(135deg,#2563eb,#1d4ed8); }
+.col-blue .cls-section   { border-color: #dbeafe; }
+.col-blue .vis { color: #1d4ed8; }
+
+/* Cyan */
+.col-cyan { border-color: #0e7490; box-shadow: 0 3px 14px rgba(14,116,144,.22); }
+.col-cyan .cls-header    { background: linear-gradient(135deg,#0891b2,#0e7490); }
+.col-cyan .cls-section   { border-color: #cffafe; }
+.col-cyan .vis { color: #0e7490; }
+
+/* Orange */
+.col-orange { border-color: #c2410c; box-shadow: 0 3px 14px rgba(194,65,12,.22); }
+.col-orange .cls-header  { background: linear-gradient(135deg,#ea580c,#c2410c); }
+.col-orange .cls-section { border-color: #ffedd5; }
+.col-orange .vis { color: #c2410c; }
+
+/* Teal */
+.col-teal { border-color: #0f766e; box-shadow: 0 3px 14px rgba(15,118,110,.22); }
+.col-teal .cls-header    { background: linear-gradient(135deg,#0d9488,#0f766e); }
+.col-teal .cls-section   { border-color: #ccfbf1; }
+.col-teal .vis { color: #0f766e; }
+
+/* Rose */
+.col-rose { border-color: #be185d; box-shadow: 0 3px 14px rgba(190,24,93,.22); }
+.col-rose .cls-header    { background: linear-gradient(135deg,#e11d48,#be185d); }
+.col-rose .cls-section   { border-color: #fce7f3; }
+.col-rose .vis { color: #be185d; }
+
+/* Indigo */
+.col-indigo { border-color: #4338ca; box-shadow: 0 3px 14px rgba(67,56,202,.22); }
+.col-indigo .cls-header  { background: linear-gradient(135deg,#4f46e5,#4338ca); }
+.col-indigo .cls-section { border-color: #e0e7ff; }
+.col-indigo .vis { color: #4338ca; }
+
+/* Slate */
+.col-slate { border-color: #475569; box-shadow: 0 3px 14px rgba(71,85,105,.18); }
+.col-slate .cls-header   { background: linear-gradient(135deg,#64748b,#475569); }
+.col-slate .cls-section  { border-color: #f1f5f9; }
+.col-slate .vis { color: #475569; }
+
+/* ── SVG ARROWS ──────────────────────────── */
+svg.arrows {
+  position: absolute; top:0; left:0;
+  width:100%; height:100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.arr-solid   { stroke: #475569; stroke-width: 1.6; fill: none; }
+.arr-dashed  { stroke: #94a3b8; stroke-width: 1.4; fill: none; stroke-dasharray: 5,3; }
+.arr-comp    { stroke: #374151; stroke-width: 1.6; fill: none; }
+.arr-mm      { stroke: #7c3aed; stroke-width: 1.6; fill: none; stroke-dasharray: 4,2; }
+.lbl { font-family:'Segoe UI',sans-serif; font-size:9.5px; fill:#374151; }
+.lbl-mult { font-family:'Segoe UI',sans-serif; font-size:9px; fill:#1a2744; font-weight:700; }
+.lbl-rel  { font-family:'Segoe UI',sans-serif; font-size:8.5px; fill:#6b7280; font-style:italic; }
+
+/* ── LEGEND ──────────────────────────────── */
+.legend {
+  position: absolute;
+  right: 18px; bottom: 18px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 10px;
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.legend h4 { font-size: 11px; color:#1a2744; margin-bottom:7px; font-weight:700; }
+.legend-row { display:flex; align-items:center; gap:10px; margin:4px 0; }
+.legend-row svg { flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div class="page-title">DIAGRAMME DE CLASSES – SYSTÈME DE GESTION DES PFE (ISCAE)</div>
+
+<div class="diagram">
+
+<!-- ════════════════════════════════════════════ -->
+<!--  SVG CONNECTIONS                            -->
+<!-- ════════════════════════════════════════════ -->
+<svg class="arrows">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#475569"/>
+    </marker>
+    <marker id="arr-open" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polyline points="0 0,9 4,0 8" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+    </marker>
+    <marker id="arr-mm" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="diamond-full" markerWidth="16" markerHeight="9" refX="2" refY="4.5" orient="auto">
+      <polygon points="0 4.5,8 0,16 4.5,8 9" fill="#374151"/>
+    </marker>
+    <marker id="diamond-open" markerWidth="16" markerHeight="9" refX="2" refY="4.5" orient="auto">
+      <polygon points="0 4.5,8 0,16 4.5,8 9" fill="white" stroke="#374151" stroke-width="1.3"/>
+    </marker>
+    <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#1d4ed8"/>
+    </marker>
+    <marker id="arr-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#b91c1c"/>
+    </marker>
+    <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#047857"/>
+    </marker>
+    <marker id="arr-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#0e7490"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0,10 3.5,0 7" fill="#c2410c"/>
+    </marker>
+  </defs>
+
+  <!-- ─── CustomUser → Sujet (propose_par) ─── -->
+  <line x1="285" y1="200" x2="323" y2="200" class="arr-solid" marker-end="url(#arr)"/>
+  <text x="288" y="196" class="lbl-rel">propose_par</text>
+  <text x="272" y="210" class="lbl-mult">1</text>
+  <text x="293" y="210" class="lbl-mult">0..*</text>
+
+  <!-- CustomUser → Sujet (etudiant_cible) dashed -->
+  <line x1="285" y1="250" x2="323" y2="250" class="arr-dashed" marker-end="url(#arr-open)"/>
+  <text x="288" y="246" class="lbl-rel">etudiant_cible</text>
+
+  <!-- CustomUser → Sujet (encadrant) dashed -->
+  <line x1="285" y1="295" x2="323" y2="265" class="arr-dashed" marker-end="url(#arr-open)"/>
+  <text x="288" y="291" class="lbl-rel">encadrant</text>
+
+  <!-- AnneeAcademique → Sujet -->
+  <path d="M 618,145 Q 540,145 540,215 L 590,215" class="arr-solid" marker-end="url(#arr-green)"/>
+  <text x="530" y="175" class="lbl-rel">annee_acad.</text>
+  <text x="605" y="213" class="lbl-mult">0..*</text>
+
+  <!-- Sujet → PFE (1:1 composition) -->
+  <line x1="590" y1="215" x2="918" y2="215" class="arr-comp" marker-start="url(#diamond-full)" marker-end="url(#arr)"/>
+  <text x="700" y="210" class="lbl-rel">sujet (OneToOne)</text>
+  <text x="593" y="228" class="lbl-mult">1</text>
+  <text x="895" y="228" class="lbl-mult">1</text>
+
+  <!-- CustomUser → PFE (etudiant) — long curved -->
+  <path d="M 285,330 C 600,330 600,260 918,260" class="arr-solid" stroke="#6d28d9" marker-end="url(#arr)"/>
+  <text x="540" y="310" class="lbl-rel" fill="#6d28d9">etudiant</text>
+  <text x="272" y="340" class="lbl-mult">1</text>
+  <text x="895" y="272" class="lbl-mult">0..*</text>
+
+  <!-- CustomUser → PFE (encadrant_acad) dashed -->
+  <path d="M 285,360 C 620,360 620,285 918,285" class="arr-dashed" marker-end="url(#arr-open)"/>
+  <text x="530" y="355" class="lbl-rel">encadrant_acad</text>
+
+  <!-- CustomUser → PFE (encadrant_entr) dashed -->
+  <path d="M 285,385 C 640,385 640,305 918,305" class="arr-dashed" marker-end="url(#arr-open)"/>
+  <text x="530" y="400" class="lbl-rel">encadrant_entr</text>
+
+  <!-- AnneeAcademique → PFE -->
+  <path d="M 875,145 Q 940,145 940,62" class="arr-solid" stroke="#047857" marker-end="url(#arr-green)"/>
+  <text x="880" y="138" class="lbl-rel" fill="#047857">annee_acad.</text>
+
+  <!-- PFE → FicheInscription (1:1) -->
+  <line x1="1188" y1="195" x2="1225" y2="195" class="arr-comp" marker-start="url(#diamond-full)" marker-end="url(#arr)"/>
+  <text x="1192" y="190" class="lbl-rel">pfe (1:1)</text>
+
+  <!-- PFE → Livrable (1:N) -->
+  <path d="M 1050,415 C 1050,450 880,450 880,373" class="arr-solid" stroke="#b91c1c" marker-start="url(#diamond-open)" marker-end="url(#arr-red)"/>
+  <text x="930" y="445" class="lbl-rel" fill="#b91c1c">livrables</text>
+  <text x="1052" y="428" class="lbl-mult">1</text>
+  <text x="882" y="390" class="lbl-mult">0..*</text>
+
+  <!-- AnneeAcademique → Livrable (via deadline shared col) -->
+  <path d="M 747,263 L 747,373" class="arr-solid" stroke="#047857" marker-end="url(#arr-green)"/>
+  <text x="750" y="330" class="lbl-rel" fill="#047857">deadlines / livrables</text>
+
+  <!-- AnneeAcademique → Deadline -->
+  <path d="M 747,263 C 747,310 747,700 747,750" class="arr-solid" stroke="#c2410c" stroke-dasharray="6,3" marker-end="url(#arr-orange)"/>
+
+  <!-- PFE → Soutenance (1:1) -->
+  <path d="M 1050,415 C 1050,445 455,445 455,482" class="arr-comp" marker-start="url(#diamond-full)" marker-end="url(#arr)"/>
+  <text x="680" y="440" class="lbl-rel">soutenance (1:1)</text>
+
+  <!-- PFE → Note (1:N) -->
+  <path d="M 1050,415 L 1050,502" class="arr-solid" stroke="#b91c1c" marker-start="url(#diamond-open)" marker-end="url(#arr-red)"/>
+  <text x="1055" y="465" class="lbl-rel" fill="#b91c1c">notes</text>
+  <text x="1036" y="495" class="lbl-mult">0..*</text>
+
+  <!-- AnneeAcademique → Soutenance -->
+  <path d="M 618,180 C 490,180 455,380 455,482" class="arr-solid" stroke="#047857" stroke-dasharray="5,3" marker-end="url(#arr-open)"/>
+  <text x="462" y="360" class="lbl-rel" fill="#047857">annee_acad.</text>
+
+  <!-- CustomUser ↔ Soutenance (membres_jury M:M) -->
+  <path d="M 155,447 C 155,465 330,465 330,600" class="arr-mm" marker-end="url(#arr-mm)"/>
+  <text x="160" y="470" class="lbl-rel" fill="#7c3aed">membres_jury (M:M)</text>
+
+  <!-- CustomUser → Soutenance (president_jury) dashed -->
+  <path d="M 285,415 C 310,415 310,560 323,580" class="arr-dashed" marker-end="url(#arr-open)"/>
+  <text x="288" y="490" class="lbl-rel">president_jury</text>
+
+  <!-- Soutenance → Note (1:N) -->
+  <line x1="590" y1="610" x2="918" y2="590" class="arr-solid" marker-start="url(#diamond-open)" marker-end="url(#arr)"/>
+  <text x="700" y="604" class="lbl-rel">notes</text>
+  <text x="595" y="624" class="lbl-mult">1</text>
+  <text x="895" y="604" class="lbl-mult">0..*</text>
+
+  <!-- CustomUser → Note (evaluateur) -->
+  <path d="M 285,380 C 850,380 850,560 918,570" class="arr-solid" stroke="#6d28d9" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+  <text x="820" y="488" class="lbl-rel" fill="#6d28d9">evaluateur</text>
+
+  <!-- CustomUser → Notification (destinataire) -->
+  <line x1="155" y1="447" x2="155" y2="533" class="arr-solid" stroke="#0e7490" marker-end="url(#arr-cyan)"/>
+  <text x="158" y="495" class="lbl-rel" fill="#0e7490">destinataire</text>
+  <text x="140" y="450" class="lbl-mult">1</text>
+  <text x="140" y="530" class="lbl-mult">0..*</text>
+
+  <!-- CustomUser → Message (expediteur) -->
+  <path d="M 155,447 C 155,850 142,850 142,843" class="arr-solid" stroke="#4338ca" marker-end="url(#arr)"/>
+  <text x="158" y="700" class="lbl-rel" fill="#4338ca">expediteur / destinataire</text>
+
+  <!-- Note → CustomUser (evaluateur back-ref label) already drawn above -->
+
+  <!-- Livrable → AnneeAcademique Deadline back-connection -->
+
+</svg>
+
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : CustomUser                        -->
+<!--  left=15  top=60  w=270                     -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-purple" style="left:15px;top:60px;width:270px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Utilisateur»</div>
+    <div class="cls-name">CustomUser</div>
+    <div class="cls-enum">role: etudiant | encadrant_acad | encadrant_entr<br>coordinateur | jury | scolarite | admin</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">email</span><span class="atype">: str [unique]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">nom</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">prenom</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">role</span><span class="atype">: RoleChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">is_active</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">is_first_login</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">max_etudiants</span><span class="atype">: int</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">filiere</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">telephone</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">matricule</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ full_name() : str</div>
+      <div class="mline">+ set_password() : void</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : AnneeAcademique                   -->
+<!--  left=618  top=60  w=255                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-green" style="left:618px;top:60px;width:255px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Configuration»</div>
+    <div class="cls-name">AnneeAcademique</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">libelle</span><span class="atype">: str [unique]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date_debut</span><span class="atype">: Date</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date_fin</span><span class="atype">: Date</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">active</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date_limite_soutenance</span><span class="atype">: Date</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ save() : void <span style="color:#6b7280;font-size:9px;">[désactive autres]</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Sujet                             -->
+<!--  left=323  top=60  w=265                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-amber" style="left:323px;top:60px;width:265px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Sujet PFE»</div>
+    <div class="cls-name">Sujet</div>
+    <div class="cls-enum">statut: PROPOSE | VALIDE | REFUSE | AFFECTE<br>origine: academique | entreprise</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">titre</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">description</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">origine</span><span class="atype">: OrigineChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">statut</span><span class="atype">: StatutChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">filiere</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee</span><span class="atype">: int</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">motif_refus</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">confidentiel</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">propose_par</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">etudiant_cible</span><span class="atype">: FK(CustomUser) [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">encadrant</span><span class="atype">: FK(CustomUser) [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee_academique</span><span class="atype">: FK [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ etudiant() : CustomUser <span style="color:#6b7280;font-size:9px;">[@property]</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : PFE                               -->
+<!--  left=918  top=60  w=268                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-red" style="left:918px;top:60px;width:268px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Projet de Fin d'Études»</div>
+    <div class="cls-name">PFE</div>
+    <div class="cls-enum">statut: EN_COURS | VALIDE | REFUSE | ARCHIVE<br>mention: tres_bien | bien | assez_bien | passable | ajourne</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">titre</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">filiere</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee</span><span class="atype">: int</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">statut</span><span class="atype">: StatutChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">score_plagiat</span><span class="atype">: float</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">mention</span><span class="atype">: MentionChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">resume</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">mots_cles</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">sujet</span><span class="atype">: OneToOne(Sujet)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">etudiant</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">encadrant_acad</span><span class="atype">: FK(CustomUser) [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">encadrant_entr</span><span class="atype">: FK(CustomUser) [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee_academique</span><span class="atype">: FK [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : FicheInscription                  -->
+<!--  left=1225  top=60  w=255                   -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-indigo" style="left:1225px;top:60px;width:255px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Document Administratif»</div>
+    <div class="cls-name">FicheInscription</div>
+    <div class="cls-enum">statut: EN_ATTENTE_ENCADRANT | EN_ATTENTE_COORDINATEUR | SIGNEE</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">pfe</span><span class="atype">: OneToOne(PFE)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">statut</span><span class="atype">: StatutChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">signe_encadrant</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">signe_coordinateur</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">chemin_pdf</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Livrable                          -->
+<!--  left=618  top=373  w=262                   -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-green" style="left:618px;top:373px;width:262px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Dépôt Fichier»</div>
+    <div class="cls-name">Livrable</div>
+    <div class="cls-enum">type: rapport | code | presentation<br>statut: EN_ATTENTE | VALIDE | REFUSE</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">pfe</span><span class="atype">: FK(PFE)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">type</span><span class="atype">: TypeChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">fichier</span><span class="atype">: FileField</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">statut</span><span class="atype">: StatutChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">remarques</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">hors_delai</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">version</span><span class="atype">: int</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date_depot</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Deadline                          -->
+<!--  left=1225  top=373  w=255                  -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-orange" style="left:1225px;top:373px;width:255px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Calendrier»</div>
+    <div class="cls-name">Deadline</div>
+    <div class="cls-enum">type: rapport | code | presentation<br>UNIQUE: (annee_academique, type_livrable)</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee_academique</span><span class="atype">: FK</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">type_livrable</span><span class="atype">: TypeChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date_limite</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Soutenance                        -->
+<!--  left=323  top=482  w=267                   -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-cyan" style="left:323px;top:482px;width:267px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Événement»</div>
+    <div class="cls-name">Soutenance</div>
+    <div class="cls-enum">statut: EN_ATTENTE_AUTORISATION | PLANIFIEE<br>EN_COURS | TERMINEE | REPORTEE</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">pfe</span><span class="atype">: OneToOne(PFE)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">date</span><span class="atype">: DateTime</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">salle</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">duree</span><span class="atype">: int [minutes]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">statut</span><span class="atype">: StatutChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">note_finale</span><span class="atype">: float [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">annee_academique</span><span class="atype">: FK [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">membres_jury</span><span class="atype">: M2M(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">president_jury</span><span class="atype">: FK(CustomUser) [null]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Note                              -->
+<!--  left=918  top=502  w=260                   -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-rose" style="left:918px;top:502px;width:260px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Évaluation»</div>
+    <div class="cls-name">Note</div>
+    <div class="cls-enum">type: jury | encadrant | finale<br>UNIQUE: (soutenance, evaluateur, type)</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">soutenance</span><span class="atype">: FK(Soutenance)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">evaluateur</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">valeur</span><span class="atype">: float [0–20]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">type</span><span class="atype">: TypeChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">commentaire</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Notification                      -->
+<!--  left=15  top=533  w=270                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-teal" style="left:15px;top:533px;width:270px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Alertes»</div>
+    <div class="cls-name">Notification</div>
+    <div class="cls-enum">type: sujet_valide | sujet_refuse | encadrant_affecte<br>livrable_depose | livrable_valide | livrable_refuse<br>soutenance_planifiee | note_publiee | deadline</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">destinataire</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">titre</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">message</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">type</span><span class="atype">: TypeChoices</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">lu</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  CLASSE : Message                           -->
+<!--  left=15  top=843  w=260                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="cls col-indigo" style="left:15px;top:843px;width:260px;">
+  <div class="cls-header">
+    <div class="cls-stereo">«Messagerie»</div>
+    <div class="cls-name">Message</div>
+  </div>
+  <div class="cls-body">
+    <div class="cls-section">
+      <div class="row"><span class="vis">-</span><span class="aname">id</span><span class="atype">: int [PK]</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">expediteur</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">destinataire</span><span class="atype">: FK(CustomUser)</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">contenu</span><span class="atype">: str</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">lu</span><span class="atype">: bool</span></div>
+      <div class="row"><span class="vis">-</span><span class="aname">created_at</span><span class="atype">: DateTime</span></div>
+    </div>
+    <div class="cls-section dashed">
+      <div class="mline">+ __str__() : str</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  LÉGENDE                                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="legend">
+  <h4>Légende</h4>
+  <div class="legend-row">
+    <svg width="55" height="14"><line x1="2" y1="7" x2="45" y2="7" stroke="#475569" stroke-width="1.6"/><polygon points="45,3 55,7 45,11" fill="#475569"/></svg>
+    Association / FK
+  </div>
+  <div class="legend-row">
+    <svg width="55" height="14"><line x1="2" y1="7" x2="45" y2="7" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3"/><polyline points="45,3 55,7 45,11" stroke="#94a3b8" stroke-width="1.4" fill="none"/></svg>
+    Dépendance (FK nullable)
+  </div>
+  <div class="legend-row">
+    <svg width="55" height="14"><polygon points="2,7 10,3 18,7 10,11" fill="#374151"/><line x1="18" y1="7" x2="45" y2="7" stroke="#374151" stroke-width="1.6"/><polygon points="45,3 55,7 45,11" fill="#374151"/></svg>
+    Composition (OneToOne)
+  </div>
+  <div class="legend-row">
+    <svg width="55" height="14"><polygon points="2,7 10,3 18,7 10,11" fill="white" stroke="#374151" stroke-width="1.2"/><line x1="18" y1="7" x2="45" y2="7" stroke="#374151" stroke-width="1.6"/><polygon points="45,3 55,7 45,11" fill="#374151"/></svg>
+    Agrégation (1:N)
+  </div>
+  <div class="legend-row">
+    <svg width="55" height="14"><line x1="2" y1="7" x2="45" y2="7" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4,2"/><polygon points="45,3 55,7 45,11" fill="#7c3aed"/></svg>
+    ManyToMany
+  </div>
+  <div style="margin-top:6px; padding-top:6px; border-top:1px solid #e5e7eb;">
+    <div style="color:#6b7280; font-size:9px;">- attr : private &nbsp; + method : public</div>
+    <div style="color:#6b7280; font-size:9px;">«stéréotype» affiché dans l'en-tête</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--  NOTE FORMULE NOTE FINALE                   -->
+<!-- ════════════════════════════════════════════ -->
+<div style="position:absolute; right:18px; top:18px; background:white; border:1.5px solid #fde68a; border-radius:8px; padding:10px 14px; font-size:10px; color:#374151; max-width:240px; box-shadow:0 2px 8px rgba(0,0,0,.08);">
+  <div style="font-weight:700; color:#b45309; margin-bottom:5px;">📐 Formule Note Finale</div>
+  <div style="font-family:monospace; font-size:9.5px; line-height:1.7; background:#fffbeb; padding:6px 8px; border-radius:4px;">
+    Si encadrant noté :<br>
+    &nbsp;&nbsp;moy_jury × 60% + moy_enc × 40%<br><br>
+    Si pas d'encadrant :<br>
+    &nbsp;&nbsp;moy_jury × 100%<br><br>
+    ADMIS si note_finale ≥ 10/20
+  </div>
+</div>
+
+</div><!-- .diagram -->
+</body>
+</html>

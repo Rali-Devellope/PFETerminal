@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { useNotifStore } from '../../store/notifStore'
 import { useAuth } from '../../hooks/useAuth'
+import { getNonLusCount } from '../../api/messages'
+import { getNotifications } from '../../api/notifications'
 
 function Avatar({ prenom, nom }) {
   const initials = `${(prenom?.[0] ?? '').toUpperCase()}${(nom?.[0] ?? '').toUpperCase()}`
@@ -24,6 +27,25 @@ export default function Navbar({ onToggleSidebar }) {
   const { logout } = useAuth()
   const navigate = useNavigate()
   const [showUser, setShowUser] = useState(false)
+
+  const { data: msgCountRes } = useQuery({
+    queryKey: ['msg-non-lus'],
+    queryFn: getNonLusCount,
+    refetchInterval: 15000,
+    enabled: !!user,
+  })
+  const msgUnread = msgCountRes?.data?.data?.count ?? 0
+
+  const { data: notifsRes } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: getNotifications,
+    refetchInterval: 30000,
+    enabled: !!user,
+  })
+  const notifUnread = useMemo(() => {
+    const raw = notifsRes?.data?.results ?? notifsRes?.data?.data ?? notifsRes?.data ?? []
+    return Array.isArray(raw) ? raw.filter((n) => !n.lu).length : 0
+  }, [notifsRes])
 
   const isAr = i18n.language === 'ar'
 
@@ -98,12 +120,12 @@ export default function Navbar({ onToggleSidebar }) {
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {unreadCount > 0 && (
+          {notifUnread > 0 && (
             <span
               className="absolute top-1.5 right-1.5 text-white text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center"
               style={{ backgroundColor: '#ef4444', boxShadow: '0 0 0 2px #1e3a5f' }}
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {notifUnread > 9 ? '9+' : notifUnread}
             </span>
           )}
         </button>
@@ -116,6 +138,13 @@ export default function Navbar({ onToggleSidebar }) {
           <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
+          {msgUnread > 0 && (
+            <span
+              className="absolute top-1.5 right-1.5 text-white text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center"
+              style={{ backgroundColor: '#2db84b', boxShadow: '0 0 0 2px #1e3a5f' }}>
+              {msgUnread > 9 ? '9+' : msgUnread}
+            </span>
+          )}
         </button>
 
         {/* Separator */}
